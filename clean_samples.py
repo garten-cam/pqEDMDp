@@ -114,8 +114,6 @@ class cleanSamples:
         else:
             proper['shaft'] = False
         
-        for variable in neg_checklist:
-            print(rough_sample[variable])
         # Check for negative values
         return proper
     
