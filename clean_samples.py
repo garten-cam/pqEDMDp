@@ -115,7 +115,7 @@ class cleanSamples:
             proper['shaft'] = False
         
         # Check for negative values
-        return proper
+        return proper['shaft']
     
 
 if __name__ == "__main__":
