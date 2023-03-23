@@ -22,10 +22,10 @@ class dbImport:
     def __init__(self, path_02seconds="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_02s_20220501_20220901.db",
             path_10seconds="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_10s_20220501_20220901.db",
             path_60seconds="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_10s_20220501_20220901.db",
-            #path_transfos="C:\Expert System Codes\Prism_extracts\BEAIKL1_PRISM_DT_Tags_full_20221128.pickle",
-            path_transfos="C:\Expert System Codes\Prism_extracts\Data\BEAIKL1_PRISM_DT_Tags_full_20221022.csv",
-            start_date="2022-07-30 00:00:00",
-            end_date="2022-08-30 15:00:00",
+            path_transfos="C:\Expert System Codes\Prism_extracts\Pickle\BEAIKL1_PRISM_DT_Tags_full_20230227.pickle",
+            # path_transfos="C:\Expert System Codes\Prism_extracts\Data\BEAIKL1_PRISM_DT_Tags_full_20221022.csv",
+            start_date="2022-07-01 00:00:00",
+            end_date="2022-07-05 15:00:00",
             interpolation_method='akima',
             features_02seconds=['Time',
                                 'Speed',
@@ -77,12 +77,9 @@ class dbImport:
         cycle_index = np.nonzero(kiln_dataframe['Cycle - Number'].diff().to_numpy(na_value=0))[0]
         # Python indexing excludes the final element because of the zero indexing...
         # So it is not necessary to calculate an end index
-        # main loop
-        # preallocate the list (I have no idea if this makes the python code run better) 
-        samples = [None]*(cycle_index.size - 1)
-        for idx in range(len(samples)):
-            samples[idx] = kiln_dataframe.iloc[cycle_index[idx]:cycle_index[idx+1],:]
-        return samples
+        # I will not perform the division here
+        kiln_dataframe = kiln_dataframe.iloc[cycle_index[0]:cycle_index[-1],:]
+        return kiln_dataframe
 
     def concatenateDBs(self):
         # Separate method from the import to keep things uncluttered.
@@ -152,11 +149,11 @@ class dbImport:
         # The db I had no longer exists...
         # so, go back to csv NO! Now its a pickle
         # 1. load the pickle
-        #transfos = pd.DataFrame(pd.read_pickle(path_to_transfos))
-        transfos_csv = pd.DataFrame(pd.read_csv(path_to_transfos, 
-                                                encoding='utf-8', 
-                                                parse_dates=["Timestamp"], 
-                                                date_parser=pd.to_datetime))
+        transfos = pd.DataFrame(pd.read_pickle(path_to_transfos))
+        # transfos_csv = pd.DataFrame(pd.read_csv(path_to_transfos, 
+        #                                         encoding='utf-8', 
+        #                                         parse_dates=["Timestamp"], 
+        #                                         date_parser=pd.to_datetime))
         # Ok, this brings the complete file in the shape of a dictionary
         # I only need some variables in the required timeframe to
         # eventually do the synchronization. So... I can Dataframe it 
@@ -166,9 +163,9 @@ class dbImport:
         # Do it in anoter line and extract the dates and variables in the same slicing
         # I only need the Cycle - Number and the Combustion shaft
         # 4. Get just the necessary dates
-        # transfos = transfos.loc[(transfos["Timestamp"]>=pd.to_datetime(start_date)) & (transfos["Timestamp"]<=pd.to_datetime(end_date)),["Cycle - Number","Combustion shaft"]]
-        transfos_csv = transfos_csv.loc[(transfos_csv["Timestamp"]>=pd.to_datetime(start_date)) & (transfos_csv["Timestamp"]<=pd.to_datetime(end_date)),["Cycle - Number","Combustion shaft"]]
-        return transfos_csv
+        transfos = transfos.loc[(transfos["Timestamp"]>=pd.to_datetime(start_date)) & (transfos["Timestamp"]<=pd.to_datetime(end_date)),["Cycle - Number","Combustion shaft"]]
+        # transfos_csv = transfos_csv.loc[(transfos_csv["Timestamp"]>=pd.to_datetime(start_date)) & (transfos_csv["Timestamp"]<=pd.to_datetime(end_date)),["Cycle - Number","Combustion shaft"]]
+        return transfos
 
 if __name__ == "__main__":
     import_params = dbImport()

@@ -4,7 +4,7 @@ Code for cleaning the samples that come from rough db.
 '''
 import db_from_inputs as idb
 import numpy as np
-import pandas as pd
+import matplotlib.pyplot as plt
 
 class cleanSamples:
     def __init__(self,
@@ -52,70 +52,99 @@ class cleanSamples:
         # does not belong gets imported. 
 
     # The three cases I have are: per shaft, one long term, and several long term
+    def continousCylces(self, rough_samples=idb.dbImport().akima_kiln_samples()):
 
-    # Small test here
+        continous_samples = 1
+        return continous_samples
+    # Selecting for each shaft is done!
     def perShaftData(self, rough_samples=idb.dbImport().akima_kiln_samples(), shaft=1):
-        # Returns two structures, shaft_01 data and shaft_02 data
-        # This first iteration will not consider N shafts, in case htere are three shafts.
-        digits = cleanSamples.getDigits(rough_samples)
-        # changes the digit to false if it does not meet the selection criteria
-        # Match the keys in the rough samples to the keys in the states
-        neg_checklist = rough_samples[0].keys()[rough_samples[0].keys().str.contains("|".join(self.states))]
-        for idx, sample in enumerate(rough_samples):
-            if digits[idx]:
-                digits[idx] = cleanSamples.is_proper_sample(sample, shaft=shaft, neg_checklist=neg_checklist)
-            
-        # preallocate the final 
+        # 0. Because of the changes in the imports, now I need the index the cycles staritgn from 0 and including the 
+        # lenght of the rough_samples + 1
+        cycle_index = np.concatenate((np.array([0]), np.nonzero(rough_samples['Cycle - Number'].diff().to_numpy(na_value=0))[0], np.array([len(rough_samples)+1])))
+        # Returns list of structures, where each structure returns the time vector, 
+        # the states matrix and the input matrix 
+        # 1. Get the basic selection digits, selects when the kiln is running and there 
+        # are no double starts in the burning process
+        digits = cleanSamples.getDigits(rough_samples,cycle_index)
+        # 2. Get more digits, the ones that signal that is the right shaft.
+        # I s this necessary? just to make the "and" operation?
+        is_shaft = np.zeros(len(rough_samples))
+        for idx in range(cycle_index.size - 1):
+            if rough_samples['Combustion shaft'].loc[cycle_index[idx]:cycle_index[idx+1]].all() == shaft:
+                is_shaft[cycle_index[idx]:cycle_index[idx+1]] = 1
         
-        
-        return digits
+        select_sample = np.logical_and(digits, is_shaft)
+        # 3. Prune the sataset
+        rough_samples = rough_samples.loc[select_sample]
+        # 3. Now, main division loop
+        # 3.1. recalculate the cycle index
+        cycle_index_shaft = np.concatenate((np.array([0]), np.nonzero(rough_samples['Cycle - Number'].diff().to_numpy(na_value=0))[0], np.array([len(rough_samples)+1])))
+        # 3.2. Match the state and input names with the keys in the df
+        state_match = rough_samples.keys()[rough_samples.keys().str.contains("|".join(self.states))]
+        input_match = rough_samples.keys()[rough_samples.keys().str.contains("|".join(self.inputs))]
+        # 3.3. Now....... loop! take only the part of the cycle when the burning digit is guan
+        # 3.3.1. match the burning digit
+        burn = rough_samples.keys()[rough_samples.keys().str.contains('burning_dig')]
+        # 3.3.2. preallocate the samples list
+        samples = [dict()]*(cycle_index_shaft.size - 1)
+        # 3.3.3. loop
+        for sample in range(len(samples)):
+            # Bring all the data from that cycle and index further according to the 
+            burn_index = rough_samples[burn].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].to_numpy().ravel().astype(bool)
+            samples[sample]['sv'] = (rough_samples[state_match].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].loc[burn_index]).to_numpy()
+            samples[sample]['u'] = (rough_samples[input_match].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].loc[burn_index]).to_numpy()
+            samples[sample]['t'] = rough_samples['timestamp'].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].loc[burn_index]
+        return samples
+
+
     # All of them will need to check if the running digit was on
     @staticmethod
-    def getDigits(rough_samples):
+    def getDigits(rough_samples,cycle_index):
         # Calls all the filtering methods and performs an and
         # 1. Is the kiln running
-        running_digit = cleanSamples.checkRunningDigit(rough_samples)
+        digits = dict()
+        digits['running_digit'] = cleanSamples.checkRunningDigit(rough_samples, cycle_index)
         # 2. This is tricky... not-not-double burning, returns True if the sample
         # should be included
-        inclusive_burning_digit = cleanSamples.checkDoubleBurning(rough_samples)
+        digits['inclusive_burning_digit'] = cleanSamples.checkDoubleBurning(rough_samples, cycle_index)
         # Ok, these are the two things included in matlab. 
-        selection_digit = np.logical_and(running_digit, inclusive_burning_digit)
+        selection_digit = np.logical_and(digits['running_digit'], digits['inclusive_burning_digit'])
         # If I include more criteria, I have to consider a function that gives the AND
         # of all the available digits
         return selection_digit
 
 
-    def checkRunningDigit(rough_samples):
+    def checkRunningDigit(rough_samples, cycle_index):
         is_running = np.zeros(len(rough_samples))
-        for idx, rough_sample in enumerate(rough_samples):
-            if rough_sample['BE.AI.SP.KL1_kilnrun_dig'].all():
-                is_running[idx] = 1
+        for idx in range(cycle_index.size - 1):
+            if rough_samples['BE.AI.SP.KL1_kilnrun_dig'].loc[cycle_index[idx]:cycle_index[idx+1]].all():
+                is_running[cycle_index[idx]:cycle_index[idx+1]] = 1
         is_running.astype(bool)
         return is_running
     
-    def checkDoubleBurning(rough_samples):
+    def checkDoubleBurning(rough_samples, cycle_index):
         # The opposite from matlab to keep consistency of the code.
         # Returns True if the sample should be included
         double_burn = np.zeros(len(rough_samples))
-        for idx, rough_sample in enumerate(rough_samples):
-            if np.greater(rough_sample['BE.AI.SP.KL1_burning_dig_cc'].diff().ge(1).sum(),1):
-                double_burn[idx] = 1
+        for idx in range(cycle_index.size - 1):
+            if np.greater(rough_samples['BE.AI.SP.KL1_burning_dig_cc'].loc[cycle_index[idx]:cycle_index[idx+1]].diff().ge(1).sum(),1):
+                double_burn[cycle_index[idx]:cycle_index[idx+1]] = 1
         not_double = np.logical_not(double_burn)
         return not_double
     
-    def is_proper_sample(rough_sample, shaft, neg_checklist):
-        # Here we can put all the implementation of the selection of samples.
-        # Any criterion that can exclude a sample can be coded here.
-        # The first I am using is the consitency of combustion shaft, if there is a change in 
-        # during the cylce, the sample get excluded.
-        proper = dict()
-        if rough_sample['Combustion shaft'].all() == shaft:
-            proper['shaft'] = True
-        else:
-            proper['shaft'] = False
-        
-        # Check for negative values
-        return proper['shaft']
+    # def is_proper_sample(rough_sample, shaft):
+    #     # Here we can put all the implementation of the selection of samples.
+    #     # Any criterion that can exclude a sample can be coded here.
+    #     # The first I am using is the consitency of combustion shaft, if there is a change in 
+    #     # during the cylce, the sample get excluded.
+    #     proper = dict()
+    #     if rough_sample['Combustion shaft'].all() == shaft:
+    #         proper['shaft'] = True
+    #     else:
+    #         proper['shaft'] = False
+    #     # This is the space to add more criteria, this is for per sample cleaning
+    #     # Check for negative values
+    #     return proper['shaft']
     
 
 if __name__ == "__main__":
