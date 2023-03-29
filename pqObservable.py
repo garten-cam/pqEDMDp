@@ -60,6 +60,15 @@ class pqObservable:
     def pq_function(self):
         pass # To be implemented by the different polynomial classes  
 
+    def __eq__(self, other):
+        equal = False
+        # If the shapes are not equal, they are definitely not equal
+        if self.pq_matrix.shape == other.pq_matrix.shape:
+            # If the shpes are equal then... compare the whole array
+            equal = (self.pq_matrix == other.pq_matrix).all()
+            
+        return equal
+
 
 class hermiteObs(pqObservable):
     @property
@@ -137,6 +146,8 @@ if __name__ == "__main__":
     nSV = 3
     nU = 2
     obs = chebyshevtObs(nSV=nSV,p=4,q=0.5,nU=nU)
+    obs_o = chebyshevtObs(nSV=nSV,p=4,q=0.5,nU=nU)
+    print(obs==obs_o)
     print(obs.pq_function([1,2,3,4,5]))
 # sv = 8
 # x = symbols(f'x:{sv}')
