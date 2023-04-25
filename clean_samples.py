@@ -52,7 +52,9 @@ class cleanSamples:
         # does not belong gets imported. 
 
     # The three cases I have are: per shaft, one long term, and several long term
-    def continousCylces(self, rough_samples=idb.dbImport().akima_kiln_samples()):
+    def continousCylces(self,
+                        rough_samples=idb.dbImport().akima_kiln_samples(),
+                        min_num_cont_cycles=3):
 
         continous_samples = 1
         return continous_samples
@@ -60,7 +62,12 @@ class cleanSamples:
     def perShaftData(self, rough_samples=idb.dbImport().akima_kiln_samples(), shaft=1):
         # 0. Because of the changes in the imports, now I need the index the cycles staritgn from 0 and including the 
         # lenght of the rough_samples + 1
-        cycle_index = np.concatenate((np.array([0]), np.nonzero(rough_samples['Cycle - Number'].diff().to_numpy(na_value=0))[0], np.array([len(rough_samples)+1])))
+        cycle_index = np.concatenate(
+            (np.array([0]), 
+             np.nonzero(
+                rough_samples['Cycle - Number'].diff().to_numpy(na_value=0)
+             )[0], np.array([len(rough_samples)+1]))
+        )
         # Returns list of structures, where each structure returns the time vector, 
         # the states matrix and the input matrix 
         # 1. Get the basic selection digits, selects when the kiln is running and there 
