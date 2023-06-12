@@ -93,14 +93,18 @@ class cleanSamples:
         # 3.3.1. match the burning digit
         burn = rough_samples.keys()[rough_samples.keys().str.contains('burning_dig')]
         # 3.3.2. preallocate the samples list
-        samples = [dict()]*(cycle_index_shaft.size - 1)
+        # samples = [dict()]*(cycle_index_shaft.size - 1)
+        samples = [dict() for _ in range(cycle_index_shaft.size - 1)]
         # 3.3.3. loop
-        for sample in range(len(samples)):
+        for sample in range(cycle_index_shaft.size - 1):
             # Bring all the data from that cycle and index further according to the 
             burn_index = rough_samples[burn].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].to_numpy().ravel().astype(bool)
             samples[sample]['sv'] = (rough_samples[state_match].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].loc[burn_index]).to_numpy()
             samples[sample]['u'] = (rough_samples[input_match].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].loc[burn_index]).to_numpy()
             samples[sample]['t'] = rough_samples['timestamp'].iloc[cycle_index_shaft[sample]:cycle_index_shaft[sample+1]].loc[burn_index]
+        # for sample in range(len(samples)-80):
+        #     plt.figure()
+        #     plt.plot(samples[sample]['t'],samples[sample]['sv'][:,4])
         return samples
 
 
