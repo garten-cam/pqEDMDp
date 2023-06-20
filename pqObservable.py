@@ -23,6 +23,7 @@ class pqObservable:
         self.p_matrix = huge_p_matrix
         self.pq_matrix = None
         self.r_trx = None
+        self.r_matrix = None
 
     @property
     def p_matrix(self):

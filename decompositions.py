@@ -128,8 +128,18 @@ class decomposition(object):
                                np.array(psi(*xtr.transpose())).transpose()),
                               axis=1)
 
+    @property
+    def evol_function(self):
+        x = symbols(f'x:{self.observable.nSV + self.observable.nU}')
+        # Add otrhogonalization, just in case there is a r_trx different than
+        # identity. Don't do it as an if... just do the multiplication
+        poly_prod = Matrix(np.matmul(np.matmul(self.observable.poly_prod,
+                                     self.observable.r_trx),
+                                     self.U))
+        # lambdify...
+        return lambdify(x, poly_prod, modules='numpy')
 
-class maxLikeDecomp(decomposition):
+class maxLikedecomposition(decomposition):
     def __init__(self, observable, xtr, ytr):
         # super().__init__(observable, xtr, ytr)
         self.observable = observable
@@ -178,7 +188,7 @@ class maxLikeDecomp(decomposition):
         for u_column in range(1, n_obs):
             # turn the objective function into a new function dependent only on
             # one parameter
-            obj_f = partial(maxLikeDecomp.cost_function,
+            obj_f = partial(maxLikedecomposition.cost_function,
                             Q=self.Q,
                             sigma=self.Q[u_column, u_column],
                             x_eval=x_eval,
@@ -191,16 +201,6 @@ class maxLikeDecomp(decomposition):
 
         return u
 
-    @property
-    def evol_function(self):
-        x = symbols(f'x:{self.observable.nSV + self.observable.nU}')
-        # Add otrhogonalization, just in case there is a r_trx different than
-        # identity. Don't do it as an if... just do the multiplication
-        poly_prod = Matrix(np.matmul(np.matmul(self.observable.poly_prod,
-                                     self.observable.r_trx),
-                                     self.U))
-        # lambdify...
-        return lambdify(x, poly_prod, modules='numpy')
 
     @staticmethod
     def cost_function(u_col, Q, sigma, x_eval, y_eval):

@@ -1,22 +1,17 @@
-# Introduction
+# Introduction #
 
-Data management in sqlite
+Welcome to the data-driven system Identification code. In this implementation you will have some tools for (hopefully) modeling, and subsequently analyzing any time-series. The code was developed for modeling dynamical systems, but it should be suitable to identify any time-series.
 
-1. The initial script imports sqlite3, starts a connection but then does a pandas query to get the data. It uses the sql ability from pandas. There must be a way of doing everything within the database and not pandas.
-1.0. I forgot a lot of things before database management
-1.0.1. Make a script that takes all the csvs from a directory and adds them in a single database. (Done for the individual files, but not as a concatenation in a single database)
-1.0.2. Make a script that does the same with all the databases in a directory, concatenate in a single file.
-1.1. Generate connection using sqlite3. What is the best option? Create a .sql file to concatenate everything in a db? Or call everything from the python script and do it in python?
+First things first. This is not a machine learning algorithm, even though, some parts of the solution are suitable for pre-processing data to have it then, plugged into an ML algorithm.
 
-2. Ok, the scripting in databases is giving me a lot of problems. I will import the data from the database into matlab and do the analysis. I am running out of time and that can be dealt later.
-2.1 Import everything from .db files 
-2.2 do the same data transformation and selection (should be a lot of copy and paste)
-2.2.1 The are is a problem with the import, the trasfos file and the "seconds" files need to have a specific data range because otherwise the import becomes very computationally expensive. Also, for example in the transfos file, the necessary information is a couple of columns. So, I will work as before, getting the complete database imported to python and then syncing dates and features.  IMPORTANT some db expert can help me do all these joins directly in SQLite
+Now, to the point. All the developments come from the improvement of old, some say classical/traditional, techniques in data-driven system identification. By old, I mean very old, at the core of the algorithm we have the Ordinary Least Squares solution, which is a fancy name for a linear regression.
 
-3. Interpolation => Done
-4. I can do some filtering. It is not done, but the class is modular, so it can be done easily. 
-- I was thinking on using a big filtering and interpolation scheme before the optimization or learning process. In reality, I must create a pipeline. 
-  |raw data| --> |filtering and/or interpolation| --> |state space expansion| --> |Orthogonalization| --> |Hankel| --> |NODE|
-- It is the same concept as the convolutional Neutral Networks.... You make some preprocessing filtering and feed the result to the NODE.
-1. Observalbes => Done
-2. Now, the big question is, do I try with the hankel?
+For this exposition, I will be using the real data from the kiln, and the data pre-processing classes, that where developed to feed "good" data to the algorithm. The "good" data hypothesis is the responsibility of the user, so I will not cover that part in this description/tutorial.
+
+The core of the algorithm is the *extended dynamic mode decomposition* (EDMD). A technique that follows several other types of the decompositions, and that shows a remarkable power to identify dynamical systems in general, regardless of the (possibly) nonlinear behavior of the system to identify or analyze.
+
+Intuitively, the EDMD takes an arbitrary system, linear or nonlinear, and transforms the space of variables into a function space. Once in the function space, it identifies the dynamics of these functions, rather than the dynamics of the states of the system. Why is it convenient to perform this kind of transformation? Because the extra complexity of working with functions is balanced out with the fact that the time-evolution of these functions is linear. Having linearity in the analysis of a system, or an arbitrary time-series is much better than having its nonlinear counterpart. That is why, most of the analysis and control techniques rely on the local linearization of the system.
+
+As stated before, the algorithm is the transformation of the space in which the variables "live" into a function space. Therefore, choosing these functions is an important part of the algorithm, and not selecting them accurately leads to several problems that can make the solution unfeasible.
+
+## Data pre-processing ##

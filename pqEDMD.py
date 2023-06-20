@@ -68,7 +68,7 @@ class pqEDMD:
         decompositions = [[] for _ in range(len(obs_list))]  # preallocation
         for decomposition in range(len(obs_list)):
             decompositions[decomposition] = getattr(dc,
-                                                    f"{self.method}Decomp")(obs_list[decomposition], xtr, ytr)
+                                                    f"{self.method}decomposition")(obs_list[decomposition], xtr, ytr)
         return decompositions
 
     @staticmethod
@@ -77,8 +77,8 @@ class pqEDMD:
         # Get the observable that includes the constant term
         ev_fun = decp.evol_function
         # preallocate
-        pred = [{'sv': np.zeros((n_points, decp.observable.nSV))}
-                for _ in range(len(x0))]
+        pred = [{'sv': np.zeros((n_points[i], decp.observable.nSV))}
+                for i in range(len(x0))]
         # There are two options, if there is an input or not.
         # I am creating two sub functions to avoid a huge if-else
         # assign the initial condition
@@ -86,7 +86,7 @@ class pqEDMD:
             pred[sample]['sv'][0, :] = x0[sample]
         # Main loop to assign all the values
         for sample in range(len(x0)):
-            for step in range(1, n_points):
+            for step in range(1, n_points[sample]):
                 # call the predictions here
                 if u is None:
                     xprev = pqEDMD._xprev(pred[sample]['sv'][step-1, :],
@@ -167,9 +167,9 @@ class pqEDMD:
         # After somen tought, the scaling should be responsibility of the user,
         # before doing anything with the algorithm. But it is coded, so...
         if normalization:
-            scalers = {'xscaler': preprocessing.MinMaxScaler()}
+            scalers = {'xscaler': preprocessing.MinMaxScaler(feature_range=(-1,1))}
             if 'u' in training_data[0]:
-                scalers['uscaler'] = preprocessing.MinMaxScaler()
+                scalers['uscaler'] = preprocessing.MinMaxScaler(feature_range=(-1,1))
                 xtr = np.concatenate(
                     (scalers['xscaler'].fit_transform(x_prev),
                      scalers['uscaler'].fit_transform(u_prev)), axis=1)
@@ -204,13 +204,14 @@ class pqEDMD:
     @staticmethod
     def _xprev_u(x_prev, u, scalers):
         if scalers['xscaler'] is not None:
-            xprev = list(np.concatenate(
+            xprev = list(np.concatenate((
                 scalers['xscaler'].transform(
-                    x_prev.reshape(1, -1),
+                    x_prev.reshape(1, -1)
+                    )[0],
                     scalers['uscaler'].transform(
-                        u
-                    ))
-            )[0])
+                        u.reshape(1,-1)
+                    )[0])
+            ))
         else:
             xprev = list(np.concatenate(
                 (x_prev, u)))
@@ -228,7 +229,7 @@ if __name__ == "__main__":
 
     # rng = np.random.default_rng(1342)
     rng = np.random.default_rng(1342)
-    num_ics = 10
+    num_ics = 4
     ics_width = 10
     ics = ics_width*rng.random((num_ics, 2)) - ics_width/2
     # ics = np.array([[-0.3319, -1.2550],
@@ -256,7 +257,9 @@ if __name__ == "__main__":
     #
     #
     duff_EDMD = pqEDMD(p=[3], q=[1],
-                       polynomial='Legendre', normalization=False)
+                       polynomial='Legendre',
+                       normalization=True,
+                       method="")
     # # fit the alg
     tr = range(0, 2)
     ts = range(2, num_ics)
@@ -292,7 +295,7 @@ if __name__ == "__main__":
     for sample in range(num_ics):
         t = np.linspace(0, t_end, n_points)
         sol = odeint(duffode_u, ics[sample, :], t, args=(inputs[sample][0],))
-        samples_u[sample]['sv'] = sol
+        samples_u[sample]['sv'] = sol + np.random.normal(0,.5,(n_points,2))
         samples_u[sample]['t'] = t
         samples_u[sample]['u'] = np.full((n_points, 1), inputs[sample][0])
 
@@ -301,7 +304,7 @@ if __name__ == "__main__":
     app_u = duff_EDMD.predict(duff_decomps_u[0],
                               [samples_u[i]['sv'][0, :] for i in ts],
                               duff_EDMD.scalers,
-                              n_points,
+                              [len(samples_u[i]['u']) for i in ts],
                               [samples_u[i]['u'] for i in ts])
 
     [plt.plot(samples_u[i]['sv'][:, 0], samples_u[i]['sv'][:, 1], 'r')
