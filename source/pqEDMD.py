@@ -167,9 +167,11 @@ class pqEDMD:
         # After somen tought, the scaling should be responsibility of the user,
         # before doing anything with the algorithm. But it is coded, so...
         if normalization:
-            scalers = {'xscaler': preprocessing.MinMaxScaler(feature_range=(-1,1))}
+            scalers = {'xscaler': preprocessing.MinMaxScaler(
+                feature_range=(-1, 1))}
             if 'u' in training_data[0]:
-                scalers['uscaler'] = preprocessing.MinMaxScaler(feature_range=(-1,1))
+                scalers['uscaler'] = preprocessing.MinMaxScaler(
+                    feature_range=(-1, 1))
                 xtr = np.concatenate(
                     (scalers['xscaler'].fit_transform(x_prev),
                      scalers['uscaler'].fit_transform(u_prev)), axis=1)
@@ -207,10 +209,10 @@ class pqEDMD:
             xprev = list(np.concatenate((
                 scalers['xscaler'].transform(
                     x_prev.reshape(1, -1)
-                    )[0],
-                    scalers['uscaler'].transform(
-                        u.reshape(1,-1)
-                    )[0])
+                )[0],
+                scalers['uscaler'].transform(
+                    u.reshape(1, -1)
+                )[0])
             ))
         else:
             xprev = list(np.concatenate(
@@ -291,11 +293,13 @@ if __name__ == "__main__":
                   't': np.empty((n_points, 1)), 'u': np.empty((n_points, 1))}
                  for _ in range(num_ics)]
 
-    # populate the samples
+    # populate the samples with noise
+    meas_std = 0.1
     for sample in range(num_ics):
         t = np.linspace(0, t_end, n_points)
         sol = odeint(duffode_u, ics[sample, :], t, args=(inputs[sample][0],))
-        samples_u[sample]['sv'] = sol + np.random.normal(0,.5,(n_points,2))
+        samples_u[sample]['sv'] = sol + \
+            np.random.normal(0, meas_std, (n_points, 2))
         samples_u[sample]['t'] = t
         samples_u[sample]['u'] = np.full((n_points, 1), inputs[sample][0])
 

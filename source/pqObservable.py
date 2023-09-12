@@ -45,13 +45,13 @@ class pqObservable:
                 pm[:, col] = np.flip([int(x) for x in base_string])
         # For the qr or orthogonalization parts in the following,
         # it is better to have the poynomials ordered.
-        # Assume the lexicographical ordering according to the 
+        # Assume the lexicographical ordering according to the
         # state variables. i.e., x_1 < x_2 if ||x_1|| < ||x_2||
-        # and, if the norm of two arbitrary polynomials is equal, 
-        # the the lowest component determines the ordering 
+        # and, if the norm of two arbitrary polynomials is equal,
+        # the lowest component determines the ordering
         # [0,1,1]'<[1,1,0]'
-        self._p_matrix = pm[:,np.argsort(np.linalg.norm(pm, axis=0, ord=self.p),
-                                         kind='stable')]
+        self._p_matrix = pm[:, np.argsort(np.linalg.norm(pm, axis=0, ord=self.p),
+                                          kind='stable')]
         # Add the effect of u
 
     @property
@@ -76,38 +76,40 @@ class pqObservable:
                      np.concatenate((np.zeros([self.nU, pqm.shape[1]]),
                                      np.eye(self.nU)), axis=1)),
                     axis=0)
-        
+
     @property
     def r_trx(self):
-            return self._r_trx
-        
+        return self._r_trx
+
     @r_trx.setter
     def r_trx(self, value):
-        # This is to use orthogonalization from the data. If it is not provided, 
+        # This is to use orthogonalization from the data.
+        # If it is not provided,
         # Just use an identity matrix for weighting the observables.
-            pq_m_rows = self.pq_matrix.shape[1]
-            if value is not None:
-                # check if the matrix is the tright size
-                if value.shape == (pq_m_rows, pq_m_rows):
-                    self._r_trx = value
-            else:
-                self._r_trx = np.identity(pq_m_rows)
+        pq_m_rows = self.pq_matrix.shape[1]
+        if value is not None:
+            # check if the matrix is the tright size
+            if value.shape == (pq_m_rows, pq_m_rows):
+                self._r_trx = value
+        else:
+            self._r_trx = np.identity(pq_m_rows)
+
     @property
     def r_matrix(self):
         return self._r_matrix
-    
-    @r_matrix.setter
-    def r_matrix(self,value):
-        # This is to use orthogonalization from the data. If it is not provided, 
-        # Just use an identity matrix for weighting the observables.
-            pq_m_rows = self.pq_matrix.shape[1]
-            if value is not None:
-                # check if the matrix is the tright size
-                if value.shape == (pq_m_rows, pq_m_rows):
-                    self._r_matrix = value
-            else:
-                self._r_matrix = np.identity(pq_m_rows)
 
+    @r_matrix.setter
+    def r_matrix(self, value):
+        # This is to use orthogonalization from the data.
+        # If it is not provided,
+        # Just use an identity matrix for weighting the observables.
+        pq_m_rows = self.pq_matrix.shape[1]
+        if value is not None:
+            # check if the matrix is the right size
+            if value.shape == (pq_m_rows, pq_m_rows):
+                self._r_matrix = value
+        else:
+            self._r_matrix = np.identity(pq_m_rows)
 
     @property
     def pq_function(self):
@@ -122,7 +124,7 @@ class pqObservable:
         equal = False
         # If the shapes are not equal, they are definitely not equal
         if self.pq_matrix.shape == other.pq_matrix.shape:
-            # If the shpes are equal then... compare the whole array
+            # If the shapes are equal then... Compare the whole array
             equal = (self.pq_matrix == other.pq_matrix).all()
         return equal
 
@@ -141,21 +143,20 @@ class hermiteObs(pqObservable):
         if self.nU > 0:
             for idx, sv in enumerate(x[:-self.nU]):
                 polys[idx, :] = Matrix([op.hermite_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
             for idx, u in enumerate(x[-self.nU:]):
                 # Legendre polys in the first order are the constant function
                 # l^1(x)=x, perfect for the inputs
                 polys[idx + self.nSV, :] =\
                     Matrix([op.legendre_poly(power, u)
-                        for power in indexes[idx + self.nSV, :]]).transpose()
+                            for power in indexes[idx + self.nSV, :]]).transpose()
         else:
             for idx, sv in enumerate(x):
                 polys[idx, :] = Matrix([op.hermite_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
         # take the product per column
         return Matrix([math.prod(polys[:, col])
-                           for col in range(polys.shape[1])]).transpose()
-
+                       for col in range(polys.shape[1])]).transpose()
 
 
 class laguerreObs(pqObservable):
@@ -169,20 +170,21 @@ class laguerreObs(pqObservable):
         if self.nU > 0:
             for idx, sv in enumerate(x[:-self.nU]):
                 polys[idx, :] = Matrix([op.laguerre_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
             for idx, u in enumerate(x[-self.nU:]):
                 # Legendre polys in the first order are the constant function
                 # l^1(x)=x, perfect for the inputs
                 polys[idx + self.nSV, :] =\
                     Matrix([op.legendre_poly(power, u)
-                        for power in indexes[idx + self.nSV, :]]).transpose()
+                            for power in indexes[idx + self.nSV, :]]).transpose()
         else:
             for idx, sv in enumerate(x):
                 polys[idx, :] = Matrix([op.laguerre_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
         # take the product per column
         return Matrix([math.prod(polys[:, col])
-                           for col in range(polys.shape[1])]).transpose()
+                       for col in range(polys.shape[1])]).transpose()
+
 
 class chebyshevtObs(pqObservable):
     @property
@@ -195,20 +197,21 @@ class chebyshevtObs(pqObservable):
         if self.nU > 0:
             for idx, sv in enumerate(x[:-self.nU]):
                 polys[idx, :] = Matrix([op.chebyshevt_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
             for idx, u in enumerate(x[-self.nU:]):
                 # Legendre polys in the first order are the constant function
                 # l^1(x)=x, perfect for the inputs
                 polys[idx + self.nSV, :] =\
                     Matrix([op.legendre_poly(power, u)
-                        for power in indexes[idx + self.nSV, :]]).transpose()
+                            for power in indexes[idx + self.nSV, :]]).transpose()
         else:
             for idx, sv in enumerate(x):
                 polys[idx, :] = Matrix([op.chebyshevt_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
         # take the product per column
         return Matrix([math.prod(polys[:, col])
-                           for col in range(polys.shape[1])]).transpose()
+                       for col in range(polys.shape[1])]).transpose()
+
 
 class chebyshevuObs(pqObservable):
     @property
@@ -221,20 +224,21 @@ class chebyshevuObs(pqObservable):
         if self.nU > 0:
             for idx, sv in enumerate(x[:-self.nU]):
                 polys[idx, :] = Matrix([op.chebyshevu_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
             for idx, u in enumerate(x[-self.nU:]):
                 # Legendre polys in the first order are the constant function
                 # l^1(x)=x, perfect for the inputs
                 polys[idx + self.nSV, :] =\
                     Matrix([op.legendre_poly(power, u)
-                        for power in indexes[idx + self.nSV, :]]).transpose()
+                            for power in indexes[idx + self.nSV, :]]).transpose()
         else:
             for idx, sv in enumerate(x):
                 polys[idx, :] = Matrix([op.chebyshevu_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
         # take the product per column
         return Matrix([math.prod(polys[:, col])
-                           for col in range(polys.shape[1])]).transpose()
+                       for col in range(polys.shape[1])]).transpose()
+
 
 class legendreObs(pqObservable):
     @property
@@ -247,31 +251,32 @@ class legendreObs(pqObservable):
         if self.nU > 0:
             for idx, sv in enumerate(x[:-self.nU]):
                 polys[idx, :] = Matrix([op.legendre_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
             for idx, u in enumerate(x[-self.nU:]):
                 # Legendre polys in the first order are the constant function
                 # l^1(x)=x, perfect for the inputs
                 polys[idx + self.nSV, :] =\
                     Matrix([op.legendre_poly(power, u)
-                        for power in indexes[idx + self.nSV, :]]).transpose()
+                            for power in indexes[idx + self.nSV, :]]).transpose()
         else:
             for idx, sv in enumerate(x):
                 polys[idx, :] = Matrix([op.legendre_poly(power, sv)
-                                   for power in indexes[idx, :]]).transpose()
+                                        for power in indexes[idx, :]]).transpose()
 
         # take the product per column
         return Matrix([math.prod(polys[:, col])
-                           for col in range(polys.shape[1])]).transpose()
+                       for col in range(polys.shape[1])]).transpose()
+
 
 if __name__ == "__main__":
     nSV = 3
     nU = 0
     obs = hermiteObs(nSV=nSV, p=2, q=0.9, nU=nU)
     obs_fun = obs.pq_function
-    xx = obs_fun(3,5,6)
+    xx = obs_fun(3, 5, 6)
     print(xx)
     rng = np.random.default_rng()
     obs.r_trx = np.triu(rng.random((7, 7)))
     obs_fun = obs.pq_function
-    xx = obs_fun(3,5,6)
+    xx = obs_fun(3, 5, 6)
     print(xx)
