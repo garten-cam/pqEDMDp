@@ -2,11 +2,13 @@ import os
 import sqlite3
 import pandas as pd
 
-# 
+#
+
+
 def read_data_and_transfos(kiln, end_date='20220919'):
-  data_DT = pd.read_csv(os.path.join(f"C:\Expert System Codes\Prism_extracts\Data",
-                                     f"{kiln}_PRISM_DT_Tags_full_{end_date}.csv"))
-  return data_DT
+    data_DT = pd.read_csv(os.path.join(f"C:\Expert System Codes\Prism_extracts\Data",
+                                       f"{kiln}_PRISM_DT_Tags_full_{end_date}.csv"))
+    return data_DT
 
 
 def read_df_from_sqlite(filepath, table, cols='*', condition=None):
@@ -14,9 +16,10 @@ def read_df_from_sqlite(filepath, table, cols='*', condition=None):
         """Read data from SQLite """
         cnx = sqlite3.connect(filepath)
         if condition is None:
-          df = pd.read_sql_query(f'SELECT {cols} FROM {table};', cnx)
+            df = pd.read_sql_query(f'SELECT {cols} FROM {table};', cnx)
         else:
-          df = pd.read_sql_query(f'SELECT {cols} FROM {table} WHERE {condition};', cnx)
+            df = pd.read_sql_query(
+                f'SELECT {cols} FROM {table} WHERE {condition};', cnx)
         cnx.close()
         return df
 
@@ -50,8 +53,10 @@ if __name__ == "__main__":
     df_2s = read_df_from_sqlite(filepath_2s_1, "data_2s", condition=condition)
     print(f"Shape df_2s: {df_2s.shape}")
 
-    df_2s['Cycle - Number'] = df_2s[df_2s.columns[df_2s.columns.str.contains('_loads-counter_calc')]]
-    df_2s.drop(['BE.AI.SP.KL1_CO-raw-channel_ana', 'BE.AI.SP.KL1_SO2-raw-channel_ana'], axis=1, inplace=True)
+    df_2s['Cycle - Number'] = df_2s[df_2s.columns[df_2s.columns.str.contains(
+        '_loads-counter_calc')]]
+    df_2s.drop(['BE.AI.SP.KL1_CO-raw-channel_ana',
+               'BE.AI.SP.KL1_SO2-raw-channel_ana'], axis=1, inplace=True)
     col_2s = df_2s.columns[df_2s.columns.str.contains('(?=.*Time)|(?=.*Speed)|(?=.*FA0)|(?=.*WE1314-measured)|'
                                                       '(?=.*WE1314-setpoint)|(?=.*raw)|(?=.*PT)|(?=.*dig)|(?=.*loads)|'
                                                       '(?=.*strokes)|(?=.*timestamp)')]
@@ -65,7 +70,8 @@ if __name__ == "__main__":
 
     df_60s = read_df_from_sqlite(filepath_60s, "data_60s", condition=condition)
     print(f"Shape df_60s: {df_60s.shape}")
-    col_60s = df_60s.columns[df_60s.columns.str.contains('(?=.*timestamp)|(?=.*tt)|(?=.*T_blow)')]
+    col_60s = df_60s.columns[df_60s.columns.str.contains(
+        '(?=.*timestamp)|(?=.*tt)|(?=.*T_blow)')]
     data = data.merge(df_60s[col_60s], on='timestamp', how='left')
 
     data = data.fillna(method='ffill').dropna()
@@ -87,4 +93,3 @@ if __name__ == "__main__":
     print(col_2s)
     print(col_10s)
     print(col_60s)
-
