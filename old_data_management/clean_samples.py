@@ -170,6 +170,6 @@ class cleanSamples:
     #     return proper['shaft']
 
 
-if __name__ == "__main__":
-    clean_samples = cleanSamples()
-    print(clean_samples.perShaftData())
+# if __name__ == "__main__":
+#     clean_samples = cleanSamples()
+#     print(clean_samples.perShaftData())
