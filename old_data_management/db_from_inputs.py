@@ -177,6 +177,6 @@ class dbImport:
         return transfos
 
 
-if __name__ == "__main__":
-    import_params = dbImport()
-    print(import_params.akima_kiln_samples())
+# if __name__ == "__main__":
+#     import_params = dbImport()
+#     print(import_params.akima_kiln_samples())
