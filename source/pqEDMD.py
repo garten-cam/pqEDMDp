@@ -231,7 +231,7 @@ if __name__ == "__main__":
 
     # rng = np.random.default_rng(1342)
     rng = np.random.default_rng(1342)
-    num_ics = 4
+    num_ics = 10
     ics_width = 10
     ics = ics_width*rng.random((num_ics, 2)) - ics_width/2
     # ics = np.array([[-0.3319, -1.2550],
@@ -258,13 +258,13 @@ if __name__ == "__main__":
     #     # plt.title(f'sample:{sample}')
     #
     #
-    duff_EDMD = pqEDMD(p=[3], q=[1],
+    duff_EDMD = pqEDMD(p=[8], q=[0.5, 1],
                        polynomial='Legendre',
                        normalization=True,
                        method="")
     # # fit the alg
-    tr = range(0, 2)
-    ts = range(2, num_ics)
+    tr = range(0, 6)
+    ts = range(6, num_ics)
     # duff_decomps = duff_EDMD.fit([samples[i] for i in tr])
     # # duff_decomps = duff_EDMD.fit(samples[0])
     # # test with some samples

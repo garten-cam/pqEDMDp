@@ -21,10 +21,10 @@ so all the tasks that I want to do via a parser or directly on a database can wa
 
 class dbImport:
     # Class constructor
-    def __init__(self, path_02seconds="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_02s_20220501_20220901.db",
-                 path_10seconds="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_10s_20220501_20220901.db",
-                 path_60seconds="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_60s_20220101_20220901.db",
-                 path_transfos="C:\Expert System Codes\Prism_extracts\Pickle\BEAIKL1_PRISM_DT_Tags_full_20230227.pickle",
+    def __init__(self, path_02seconds,
+                 path_10seconds,  # ="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_10s_20220501_20220901.db",
+                 path_60seconds,  # ="C:\Expert System Codes\Prism_extracts\RawData\BEAIKL1_RD_60s_20220101_20220901.db",
+                 path_transfos,  # ="C:\Expert System Codes\Prism_extracts\Pickle\BEAIKL1_PRISM_DT_Tags_full_20230227.pickle",
                  # path_transfos="C:\Expert System Codes\Prism_extracts\Data\BEAIKL1_PRISM_DT_Tags_full_20221022.csv",
                  start_date="2022-07-07 15:29:00",
                  end_date="2022-07-08 23:27:04",

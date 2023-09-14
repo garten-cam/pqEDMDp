@@ -139,6 +139,7 @@ class decomposition(object):
         # lambdify...
         return lambdify(x, poly_prod, modules='numpy')
 
+
 class maxLikedecomposition(decomposition):
     def __init__(self, observable, xtr, ytr):
         # super().__init__(observable, xtr, ytr)
@@ -200,7 +201,6 @@ class maxLikedecomposition(decomposition):
                                       options={'disp': False}).x
 
         return u
-
 
     @staticmethod
     def cost_function(u_col, Q, sigma, x_eval, y_eval):
