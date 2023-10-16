@@ -1,53 +1,61 @@
+# %%
 '''
 Author: Camilo Garcia-Tenorio
 Main script for the Beware development.
 '''
-import db_from_inputs as idb
-import clean_samples as cls
-import pqEDMD as pqe
-import pickle
+import os
+import sys
 import matplotlib.pyplot as plt
+from source import pqEDMD as pqd
 
-# import_obj = idb.dbImport() # create the object with the info
-# rough_samples = import_obj.akima_kiln_samples()
+# We need to bring in the data.
+# Therefore, we are using the AK_forecasting and AK_CTA 
+# Now, finally. Import the data
+# it all starts with the data loader...
+# I am not going to generate a pipeline, the import conflicts are not letting me get so far.
+# So... I am leaving here code that must be run to get the set of cycles into a database on the local drive...  
+cba_source = 'bemaap121'
+path = r'C:\Users\cgarcia\simulations'
+folder = 'test_02102023'
 
-# # clean the samples according to the prefered method
-# samples = cls.cleanSamples()
-# samples = samples.perShaftData(rough_samples)
-# with open('samples.pkl', 'wb') as file_handle:
-#     pickle.dump(samples, file_handle)
-# print(samples)
+dll = dl.DataLoader(kiln='BEAIKL1',
+                    nb_sequence_cycles=30, # batches of 30 cons cycles
+                    nb_required_seq=10, # How many sequences per cluster
+                    min_cycle_wo_dt=20, # Number of cycles w/o downtime
+                    max_dt_val=0, # 
+                    cba_source=cba_source,
+                    folder_path=path, folder_name=folder)
+                    
+selection = dll.run_loader(verbose=False)
+# This returns a json file to the specified directory. The jason file that
+# contains the cluster, and the batches of cycles that fit the rules 
+# %%
+# Now, we move to the data extractor
+kiln = 'BEAIKL1'
+branch = None
+source_dir = 'prod'
+path = r'C:\Users\cgarcia\simulations'
+folder = 'test_02102023'
+sets_per_cluster = 2 
+sensors_dict = {'2s':
+                        ['BE.AI.SP.KL1_loads-counter_calc',
+                         'BE.AI.SP.KL1_NGBOT_dig',
+                         'BE.AI.SP.KL1_PzTime_dig',
+                         'BE.AI.SP.KL1_SFBOT_dig',
+                         'BE.AI.SP.KL1_burning_dig_cc',
+                         'BE.AI.SP.KL1_kilnrun_dig', 'BE.AI.SP.KL1_reversal_dig',
+                         'BE.AI.SP.KL1_stack-anal-clean_dig',
+                         'BE.AI.SP.KL1_stand-by_dig'],
+                    '10s': [
+                        "BE.AI.SP.KL1_Speed-AC116_ana",
+                        "BE.AI.SP.KL1_Speed-AC117_ana",
+                        "BE.AI.SP.KL1_Speed-AC146_ana",
+                        "BE.AI.SP.KL1_PT-primary-air_ana",
+                        "BE.AI.SP.KL1_PT-channel_ana",
+                        "BE.AI.SP.KL1_PT-secondary-air_ana"
+                    ]
+                    }
+de = dex.DataExtractor(kiln, path, folder, sets_per_cluster, sensors=sensors_dict)
+de.run_extractor()
 
-# I can import the data easitly from the data import classes
-# Now I need a quick method to retrieve them. In the previous lines, I
-# saved the pickle... Now, retrieve it
-with open('samples.pkl', 'rb') as file_handle:
-    samples = pickle.load(file_handle)
-
-# Next, continue developing. call the pqEDMD
-# cretate the rough object
-pqEDMD_o = pqe.pqEDMD(p=[2], q=[1],
-                      polynomial='Hermite',
-                      method="",
-                      normalization=True)
-
-# # Ok, call the function fit in the script
-pq_approximations = pqEDMD_o.fit(samples[20:40])
-
-# pq_pred = pqEDMD_o.predict(pq_approximations[0],
-#                            [samples[i]['sv'][0, :] for i in range(len(samples)-10,len(samples),1)],
-#                            pqEDMD_o.scalers,
-#                            [len(samples[i]['u']) for i in range(len(samples)-10,len(samples),1)],
-#                            [samples[i]['u'] for i in range(len(samples)-10,len(samples),1)])
-
-pq_pred = pqEDMD_o.predict(pq_approximations[0],
-                           [samples[i]['sv'][0, :] for i in range(40, 41)],
-                           pqEDMD_o.scalers,
-                           [len(samples[i]['u']) for i in range(40, 41, 1)],
-                           [samples[i]['u'] for i in range(40, 41, 1)])
-for vtp in range(pq_approximations[0].observable.nSV):
-    plt.figure()
-    plt.plot(pq_pred[0]['sv'][:, vtp])
-    plt.plot(samples[40]['sv'][:, vtp])
-    plt.show()
-x = 1
+# %%
