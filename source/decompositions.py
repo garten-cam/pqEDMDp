@@ -3,6 +3,7 @@ Author: Camilo Garcia Tenorio
 returns a decomposition object
 '''
 import numpy as np
+import sys
 from scipy.optimize import minimize
 from functools import partial
 from sympy import symbols, linear_eq_to_matrix, Matrix, linsolve, lambdify
@@ -139,6 +140,53 @@ class decomposition(object):
         # lambdify...
         return lambdify(x, poly_prod, modules='numpy')
 
+    def predict(self, x0, n_points, u=None):
+        ev_fun = self.evol_function
+        # preallocate
+        pred = [{'sv': np.zeros((n_points[i], self.observable.nSV))}
+                for i in range(len(x0))]
+        # populate the initial condition
+        for sample in range(len(x0)):
+            pred[sample]['sv'][0, :] = x0[sample]
+        # main loop to assign all values
+        for sample in range(len(x0)):
+            for step in range(1, n_points[sample]):
+                if u is None:
+                    xprev = pred[sample]['sv'][step-1, :]
+                else:
+                    xprev = np.concatenate((pred[sample]['sv'][step-1, :],
+                                           u[sample][step-1,:]))
+                
+                # evolve
+                xpost = ev_fun(*xprev)
+                # in case of orthogonalization, bring it back to the original 
+                # observables
+                xpost_ogn = xpost @ self.observable.r_matrix
+                # bring it to the original space state
+                pred[sample]['sv'][step, :] = (self.C @ xpost_ogn.T).T
+        return pred
+    
+    def pred_from_test(self, ts):
+        # to make it easier in error calculation, this method take a subset of
+        # the data in standard form and returns a prediction.
+        x0 = [ts[i]['sv'][0, :] for i in range(len(ts))]
+        # points per orbit
+        np = [ts[i]['sv'].shape[0] for i in range(len(ts))]
+        if 'u' in ts[0]:
+            pred = self.predict(x0, np, [ts[i]['u'] for i in range(len(ts))])
+        else:
+            pred = self.predict(x0, np)
+        return pred
+    
+    def error(self, ts):
+        # predict the trajectories
+        pred = self.pred_from_test(ts)
+        # Extract all the sv's from the test set
+        ts_sv = np.concatenate([ts[i]['sv'][1:,:] for i in range(len(ts))])
+        # Extract the sv's from the pred
+        pr_sv = np.concatenate([pred[i]['sv'][1:,:] for i in range(len(pred))])
+        return np.sum(np.abs(ts_sv - pr_sv))/len(ts_sv)/self.observable.nSV
+
 
 class maxLikedecomposition(decomposition):
     def __init__(self, observable, xtr, ytr):
@@ -212,6 +260,30 @@ class maxLikedecomposition(decomposition):
               np.matmul(np.matmul(u_col, Q),
                         np.atleast_2d(u_col).T)))
         return j
+class rrrdecomposition(decomposition):
+    def __init__(self, observable, xtr, ytr):
+        self.observable = observable
+        self._U = self._set_U(xtr, ytr)
 
-
-# if __name__ == "__main__":
+    @property
+    def U(self):
+        return self._U
+    
+    def _set_U(self, xtr, ytr):
+        x_eval = self.xy_eval(self.observable, xtr)
+        y_eval = self.xy_eval(self.observable, ytr)
+        # Calculate the singular value decomposition
+        U, S, V = np.linalg.svd(x_eval)
+        # calculatethe effective rank of xeval
+        r = 1
+        n_obs = self.observable.pq_matrix.shape[1]
+        while ((r < n_obs) and
+               (S[r] > max(x_eval.shape)*sys.float_info.epsilon*S[0])):
+            r += 1
+        
+        d = U.T @ y_eval
+        d_rSlice = d[:r,:]
+        d_sWeight = (d_rSlice.T*(1/S[:r])).T
+        d_nobsSlice = np.concatenate((d_sWeight, np.zeros((x_eval.shape[1] - r, n_obs))))
+        u = V.T @ d_nobsSlice
+        return u
