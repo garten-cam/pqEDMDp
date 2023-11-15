@@ -155,17 +155,17 @@ class decomposition(object):
                     xprev = pred[sample]['sv'][step-1, :]
                 else:
                     xprev = np.concatenate((pred[sample]['sv'][step-1, :],
-                                           u[sample][step-1,:]))
-                
+                                           u[sample][step-1, :]))
+
                 # evolve
                 xpost = ev_fun(*xprev)
-                # in case of orthogonalization, bring it back to the original 
+                # in case of orthogonalization, bring it back to the original
                 # observables
                 xpost_ogn = xpost @ self.observable.r_matrix
                 # bring it to the original space state
                 pred[sample]['sv'][step, :] = (self.C @ xpost_ogn.T).T
         return pred
-    
+
     def pred_from_test(self, ts):
         # to make it easier in error calculation, this method take a subset of
         # the data in standard form and returns a prediction.
@@ -177,14 +177,15 @@ class decomposition(object):
         else:
             pred = self.predict(x0, np)
         return pred
-    
+
     def error(self, ts):
         # predict the trajectories
         pred = self.pred_from_test(ts)
         # Extract all the sv's from the test set
-        ts_sv = np.concatenate([ts[i]['sv'][1:,:] for i in range(len(ts))])
+        ts_sv = np.concatenate([ts[i]['sv'][1:, :] for i in range(len(ts))])
         # Extract the sv's from the pred
-        pr_sv = np.concatenate([pred[i]['sv'][1:,:] for i in range(len(pred))])
+        pr_sv = np.concatenate([pred[i]['sv'][1:, :]
+                               for i in range(len(pred))])
         return np.sum(np.abs(ts_sv - pr_sv))/len(ts_sv)/self.observable.nSV
 
 
@@ -260,6 +261,8 @@ class maxLikedecomposition(decomposition):
               np.matmul(np.matmul(u_col, Q),
                         np.atleast_2d(u_col).T)))
         return j
+
+
 class rrrdecomposition(decomposition):
     def __init__(self, observable, xtr, ytr):
         self.observable = observable
@@ -268,7 +271,7 @@ class rrrdecomposition(decomposition):
     @property
     def U(self):
         return self._U
-    
+
     def _set_U(self, xtr, ytr):
         x_eval = self.xy_eval(self.observable, xtr)
         y_eval = self.xy_eval(self.observable, ytr)
@@ -280,10 +283,11 @@ class rrrdecomposition(decomposition):
         while ((r < n_obs) and
                (S[r] > max(x_eval.shape)*sys.float_info.epsilon*S[0])):
             r += 1
-        
+
         d = U.T @ y_eval
-        d_rSlice = d[:r,:]
+        d_rSlice = d[:r, :]
         d_sWeight = (d_rSlice.T*(1/S[:r])).T
-        d_nobsSlice = np.concatenate((d_sWeight, np.zeros((x_eval.shape[1] - r, n_obs))))
+        d_nobsSlice = np.concatenate(
+            (d_sWeight, np.zeros((x_eval.shape[1] - r, n_obs))))
         u = V.T @ d_nobsSlice
         return u

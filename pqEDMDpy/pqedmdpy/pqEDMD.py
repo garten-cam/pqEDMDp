@@ -11,8 +11,8 @@ import numpy as np
 
 class pqEDMD:
     def __init__(self,
-                 p=2,  # it can be an array of p parameters
-                 q=0.9,  # it can be an array of q parameters
+                 p=[2],  # it can be an array of p parameters
+                 q=[0.9],  # it can be an array of q parameters
                  polynomial='Hermite',  # what type of polynomial to use
                  method='maxLike',  # The method, maximum likelihood or ...
                  poly_param=None,  # Some plynomials accept a parameter.

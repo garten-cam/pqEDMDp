@@ -31,6 +31,7 @@ class pqObservable:
 
     @p_matrix.setter
     def p_matrix(self, value):
+        pm = np.zeros((self.nSV, (self.p + 1)**(self.nSV)), dtype=int)
         if value is not None:
             self._p_matrix = value
         elif (self.p**(self.nSV) - 1) > 9.0e+18:
@@ -38,7 +39,6 @@ class pqObservable:
                     combination exceeds maximum size")
         else:
             # preallocate the final matrix
-            pm = np.zeros((self.nSV, (self.p + 1)**(self.nSV)), dtype=int)
             for col in range((self.p + 1)**(self.nSV)):
                 base_string = np.base_repr(col, self.p + 1)
                 base_string = '0' * (self.nSV - len(base_string)) + base_string
@@ -50,8 +50,9 @@ class pqObservable:
         # and, if the norm of two arbitrary polynomials is equal,
         # the lowest component determines the ordering
         # [0,1,1]'<[1,1,0]'
-        self._p_matrix = pm[:, np.argsort(np.linalg.norm(pm, axis=0, ord=self.p),
-                                          kind='stable')]
+        self._p_matrix = pm[:, np.argsort(np.linalg.norm(
+            pm, axis=0, ord=self.p),
+            kind='stable')]
         # Add the effect of u
 
     @property
@@ -131,6 +132,10 @@ class pqObservable:
     def __hash__(self):
         return hash((self.p))
 
+    @property
+    def poly_prod(self):
+        return Matrix()
+
 
 class hermiteObs(pqObservable):
     @property
@@ -143,17 +148,20 @@ class hermiteObs(pqObservable):
         if self.nU > 0:
             for idx, sv in enumerate(x[:-self.nU]):
                 polys[idx, :] = Matrix([op.hermite_poly(power, sv)
-                                        for power in indexes[idx, :]]).transpose()
+                                        for power
+                                        in indexes[idx, :]]).transpose()
             for idx, u in enumerate(x[-self.nU:]):
                 # Legendre polys in the first order are the constant function
                 # l^1(x)=x, perfect for the inputs
                 polys[idx + self.nSV, :] =\
                     Matrix([op.legendre_poly(power, u)
-                            for power in indexes[idx + self.nSV, :]]).transpose()
+                            for power
+                            in indexes[idx + self.nSV, :]]).transpose()
         else:
             for idx, sv in enumerate(x):
                 polys[idx, :] = Matrix([op.hermite_poly(power, sv)
-                                        for power in indexes[idx, :]]).transpose()
+                                        for power
+                                        in indexes[idx, :]]).transpose()
         # take the product per column
         return Matrix([math.prod(polys[:, col])
                        for col in range(polys.shape[1])]).transpose()
