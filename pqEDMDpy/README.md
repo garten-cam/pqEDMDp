@@ -1,4 +1,5 @@
-# Introduction #
+
+# Introducition #
 
 Welcome to the data-driven system Identification code. In this implementation you will have some tools for (hopefully) modeling, and subsequently analyzing any time-series. The code was developed for modeling dynamical systems, but it should be suitable to identify any time-series.
 
@@ -16,7 +17,3 @@ Intuitively, the EDMD takes an arbitrary system, linear or nonlinear, and transf
 As stated before, the algorithm is the transformation of the space in which the variables "live" into a function space. Therefore, choosing these functions is an important part of the algorithm, and not selecting them accurately leads to several problems that can make the solution unfeasible. This is the reason why I spent so much time working with orthogonal polynomials and then even more orthogonalizations. With that said, you, as a user, do not have to worry about all the details of that development, the algorithm does it for you. To understand the functionality, let me explain a little bit the architecture of the solution.
 
 pqEDMD is a class that wraps the whole algorithm, it calls the pqObservable class, that provides the "function space" or the set of functions that evaluate and expand/extend the state. Having those functions, the pqEDMD class calls one of the available decompositions and performs the regression.
-
-## Data pre-processing ##
-
-For the data pre-processing, the algorithm used to have its own classes that did a query on a database. This was a very inefficient solution because everybody was designing and implementing their own classes for this purpose. Therefore, this solution does not have dedicated classes for this purpose. Instead, we are using the new data loader-access-cleaning API.

@@ -1,11 +1,7 @@
 
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
-import sys
-from pathlib import Path
-path_root = Path(__file__).parent.parent
-sys.path.append(str(path_root))
-from source import pqEDMD
+from pqedmdpy.pqEDMD import pqEDMD
 import numpy as np
 
  

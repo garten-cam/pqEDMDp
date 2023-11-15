@@ -3,8 +3,8 @@
 Author: Camilo Garcia Tenorio
 Development of pqEDMD in python... lets see how this goes...
 '''
-from source import pqObservable as obs
-from source import decompositions as dc
+from pqedmdpy import pqObservable as obs
+from pqedmdpy import decompositions as dc
 from itertools import product
 import numpy as np
 
