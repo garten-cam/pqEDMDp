@@ -1,22 +1,25 @@
 # pqEDMD Implementation
-'''
+"""
 Author: Camilo Garcia Tenorio
 Development of pqEDMD in python... lets see how this goes...
-'''
-from pqedmdpy import pqObservable as obs
-from pqedmdpy import decompositions as dc
+"""
 from itertools import product
+
 import numpy as np
+
+from pqedmdpy import decompositions as dc
+from pqedmdpy import pqObservable as obs
 
 
 class pqEDMD:
-    def __init__(self,
-                 p=[2],  # it can be an array of p parameters
-                 q=[0.9],  # it can be an array of q parameters
-                 polynomial='Hermite',  # what type of polynomial to use
-                 method='maxLike',  # The method, maximum likelihood or ...
-                 poly_param=None,  # Some plynomials accept a parameter.
-                 ):
+    def __init__(
+        self,
+        p=[2],  # it can be an array of p parameters
+        q=[0.9],  # it can be an array of q parameters
+        polynomial="Hermite",  # what type of polynomial to use
+        method="maxLike",  # The method, maximum likelihood or ...
+        poly_param=None,  # Some plynomials accept a parameter.
+    ):
         # I am changing the paradigm in this class. Different from the Matlab
         # implementation, this will not get a set of indexes for selecting the
         # training and the testing data. This will recieve the data directly
@@ -30,6 +33,7 @@ class pqEDMD:
         # not like having attributes scattered around the code without being
         # defined in the constructor
         # This will return an array of unique solutions
+
     # What do I need?
     # 1. create an empty list of unique observables
     # 2. for each observalbe, calculate the regression, and return an array of
@@ -41,17 +45,13 @@ class pqEDMD:
         # takes the training data and returns itself with updated parameters
         # for readability, I am going to unpack things before calling the
         # function
-        nsv = training_data[0]['sv'].shape[1]  # Number of state variables
-        if 'u' in training_data[0]:
-            nu = training_data[0]['u'].shape[1]  # number of inputs
+        nsv = training_data[0]["sv"].shape[1]  # Number of state variables
+        if "u" in training_data[0]:
+            nu = training_data[0]["u"].shape[1]  # number of inputs
         else:
             nu = 0
 
-        obs_list = pqEDMD.observable_list(nsv,
-                                          nu,
-                                          self.polynomial,
-                                          self.p,
-                                          self.q)
+        obs_list = pqEDMD.observable_list(nsv, nu, self.polynomial, self.p, self.q)
         # That nique obs list was hard...
         # Coninue, I need to create the matrices for the evaluation of the
         # observalbes.
@@ -62,8 +62,9 @@ class pqEDMD:
         # observables in the observables list
         decompositions = [[] for _ in range(len(obs_list))]  # preallocation
         for decomposition in range(len(obs_list)):
-            decompositions[decomposition] = getattr(dc,
-                                                    f"{self.method}decomposition")(obs_list[decomposition], xtr, ytr)
+            decompositions[decomposition] = getattr(dc, f"{self.method}decomposition")(
+                obs_list[decomposition], xtr, ytr
+            )
         return decompositions
 
     @staticmethod
@@ -76,8 +77,9 @@ class pqEDMD:
         obs_inst = getattr(obs, f"{poly_type.lower()}Obs")
         # Do a set comprenhension to store unique elements and turn it
         # into a list
-        obs_list = list({obs_inst(pq[0], pq[1], nsv, nu, param)
-                         for pq in product(p, q)})
+        obs_list = list(
+            {obs_inst(pq[0], pq[1], nsv, nu, param) for pq in product(p, q)}
+        )
 
         return obs_list
 
@@ -93,32 +95,44 @@ class pqEDMD:
         # 5. Normalize if it is the case
         x_prev = np.concatenate(  # concatenate all x in the training set
             # from the first until the antepenultimate
-            [training_data[sample]['sv'][:-2, :]
-             for sample in range(len(training_data))], axis=0
+            [
+                training_data[sample]["sv"][:-2, :]
+                for sample in range(len(training_data))
+            ],
+            axis=0,
         )
         # concatenate all u in the training set
         # form the first until the antepenultimate
-        if 'u' in training_data[0]:
-            u_prev = np.concatenate([training_data[sample]['u'][:-2, :]
-                                     for sample in range(len(training_data))],
-                                    axis=0
-                                    )
-        x_post = np.concatenate([training_data[sample]['sv'][1:-1, :]
-                                 for sample in range(len(training_data))],
-                                axis=0
-                                )
-        if 'u' in training_data[0]:
-            u_post = np.concatenate([training_data[sample]['u'][1:-1, :]
-                                     for sample in range(len(training_data))],
-                                    axis=0
-                                    )
+        if "u" in training_data[0]:
+            u_prev = np.concatenate(
+                [
+                    training_data[sample]["u"][:-2, :]
+                    for sample in range(len(training_data))
+                ],
+                axis=0,
+            )
+        x_post = np.concatenate(
+            [
+                training_data[sample]["sv"][1:-1, :]
+                for sample in range(len(training_data))
+            ],
+            axis=0,
+        )
+        if "u" in training_data[0]:
+            u_post = np.concatenate(
+                [
+                    training_data[sample]["u"][1:-1, :]
+                    for sample in range(len(training_data))
+                ],
+                axis=0,
+            )
         #
         # I am going to return a normalizer or scaler for the state and for the
         # input in different objects, this make the calculation easier at later
         # stages
         # After somen tought, the scaling should be responsibility of the user,
         # before doing anything with the algorithm. But it is coded, so...
-        if 'u' in training_data[0]:
+        if "u" in training_data[0]:
             xtr = np.concatenate((x_prev, u_prev), axis=1)
             ytr = np.concatenate((x_post, u_post), axis=1)
         else:
@@ -128,26 +142,23 @@ class pqEDMD:
 
     @staticmethod
     def _xprev(x_prev, scalers):
-        if scalers['xscaler'] is not None:
-            xprev = list(scalers['xscaler'].transform(
-                x_prev.reshape(1, -1)
-            )[0])
+        if scalers["xscaler"] is not None:
+            xprev = list(scalers["xscaler"].transform(x_prev.reshape(1, -1))[0])
         else:
             xprev = x_prev
         return xprev
 
     @staticmethod
     def _xprev_u(x_prev, u, scalers):
-        if scalers['xscaler'] is not None:
-            xprev = list(np.concatenate((
-                scalers['xscaler'].transform(
-                    x_prev.reshape(1, -1)
-                )[0],
-                scalers['uscaler'].transform(
-                    u.reshape(1, -1)
-                )[0])
-            ))
+        if scalers["xscaler"] is not None:
+            xprev = list(
+                np.concatenate(
+                    (
+                        scalers["xscaler"].transform(x_prev.reshape(1, -1))[0],
+                        scalers["uscaler"].transform(u.reshape(1, -1))[0],
+                    )
+                )
+            )
         else:
-            xprev = list(np.concatenate(
-                (x_prev, u)))
+            xprev = list(np.concatenate((x_prev, u)))
         return xprev
