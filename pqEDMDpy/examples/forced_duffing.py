@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
+
+# from qpedmdpy.decomposition import Decomposition
 from scipy.integrate import odeint
 
+from pqedmdpy import pqObservable as pqo
+from pqedmdpy.decompositions import decomposition as dcp
 from pqedmdpy.pqEDMD import pqEDMD
 
 rng = np.random.default_rng(1234)
@@ -30,7 +34,7 @@ def duffode_u(x, t, u):
 # preallocate the samples list
 samples_u = [
     {
-        "sv": np.empty((n_points, 2)),
+        "y": np.empty((n_points, 2)),
         "t": np.empty((n_points, 1)),
         "u": np.empty((n_points, 1)),
     }
@@ -42,12 +46,18 @@ meas_std = 0.0
 for sample in range(num_ics):
     t = np.linspace(0, t_end, n_points)
     sol = odeint(duffode_u, ics[sample, :], t, args=(inputs[sample][0],))
-    samples_u[sample]["sv"] = sol + np.random.normal(0, meas_std, (n_points, 2))
+    samples_u[sample]["y"] = sol + np.random.normal(0, meas_std, (n_points, 2))
     samples_u[sample]["t"] = t
     samples_u[sample]["u"] = np.full((n_points, 1), inputs[sample][0])
 
-duff_EDMD = pqEDMD(p=[5, 7], q=[0.5, 1], polynomial="Legendre", method="rrr")
+# I want to instantiate a partially gerenated object inside the class.
+poly = pqo.hermiteObs(p=2, q=1, l=2)
+# test the decomposition
+dec = dcp.Decomposition(poly, samples_u)
+# Instead of providing a string to indicate the polynomial, provide an empty
+# polynominomial
 
+duff_EDMD = pqEDMD(p=[5, 7], q=[0.5, 1], polynomial=poly, dyn_dcp="rrr")
 duff_decomps_u = duff_EDMD.fit([samples_u[i] for i in tr])
 
 err = np.zeros((len(duff_decomps_u), 1))

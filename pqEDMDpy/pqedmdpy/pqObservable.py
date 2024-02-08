@@ -10,6 +10,7 @@ from sympy.polys import orthopolys as op
 
 
 class pqObservable:
+
     def __init__(self, p=2, q=0.8, l=2):  # noqa: E741
         self.p = p  # max polynomial order
         self.q = q  # q quasi norm
