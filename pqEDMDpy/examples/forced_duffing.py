@@ -51,7 +51,7 @@ for sample in range(num_ics):
     samples_u[sample]["u"] = np.full((n_points, 1), inputs[sample][0])
 
 # I want to instantiate a partially gerenated object inside the class.
-poly = pqo.hermiteObs(p=2, q=1, l=2)
+poly = pqo.hermiteObs(l=1,p=2, q=1)
 # test the decomposition
 dec = dcp.Decomposition(poly, samples_u)
 # Instead of providing a string to indicate the polynomial, provide an empty
