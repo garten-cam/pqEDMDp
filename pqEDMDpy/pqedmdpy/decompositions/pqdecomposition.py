@@ -122,8 +122,7 @@ class pqDecomposition:
         predictions = self.predict_from_test(sys)
         # calculate the error from all the predictions
         errors = [
-            np.sum(np.absolute(pred - sys_i["y"]) / sys_i["y"]) / pred.shape[0]
-            # np.absolute(pred - actl["y"])
+            np.sum(np.absolute(pred - sys_i["y"]) / (sys_i["y"] + sys.float_info.epsilon)) / pred.shape[0]
             for pred, sys_i in zip(predictions, sys)
         ]
         error = np.sum(errors) / self.observable.l / len(sys)
