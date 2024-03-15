@@ -32,7 +32,7 @@ class pqEDMD:
         # takes the training data and returns itself with updated parameters
         # for readability, I am going to unpack things before calling the
         # function
-        nsv = system[0]["sv"].shape[1]  # Number of state variables
+        nsv = system[0]["y"].shape[1]  # Number of state variables
         if "u" in system[0]:
             nu = system[0]["u"].shape[1]  # number of inputs
         else:

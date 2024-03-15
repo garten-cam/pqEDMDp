@@ -1,34 +1,35 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
-# from qpedmdpy.decomposition import Decomposition
+# from matplotlib.colors import same_color
 from scipy.integrate import odeint
 
 from pqedmdpy import pqObservable as pqo
-from pqedmdpy.decompositions import decomposition as dcp
+from pqedmdpy.decompositions.pqdecomposition import pqDecomposition
+from pqedmdpy.decompositions.siddecomposition import sidDecomposition
+from pqedmdpy.decompositions.svddecomposition import svdDecomposition
 from pqedmdpy.pqEDMD import pqEDMD
 
 rng = np.random.default_rng(1234)
 num_ics = 10
-ics_width = 10
+ics_width = 4
 ics = ics_width * rng.random((num_ics, 2)) - ics_width / 2
 
 t_end = 30
-n_points = 301
+n_points = 10 * t_end
 
 # # fit the alg
-tr = range(0, 6)
-ts = range(6, num_ics)
+ts = [1, 2, 3, 4]
+tr = [0, 5]
 
 # Test the code for inputs
 # use some random input
-inputs = 100 * rng.random((num_ics, 1)) - 50
+inputs = 3 * rng.random((num_ics, 1)) - 1
 # The inputs will be a step that is also a random number
 
 
 def duffode_u(x, t, u):
     # Duffing with two AS points
-    return [x[1], -0.5 * x[1] + x[0] - x[0] ** 3 + u]
+    return [x[1], -0.5 * x[1] + x[0] - x[0] ** 3 + u * np.cos(u * t)]
 
 
 # preallocate the samples list
@@ -48,14 +49,52 @@ for sample in range(num_ics):
     sol = odeint(duffode_u, ics[sample, :], t, args=(inputs[sample][0],))
     samples_u[sample]["y"] = sol + np.random.normal(0, meas_std, (n_points, 2))
     samples_u[sample]["t"] = t
-    samples_u[sample]["u"] = np.full((n_points, 1), inputs[sample][0])
+    # samples_u[sample]["u"] = np.full((n_points, 1), inputs[sample][0])
+    samples_u[sample]["u"] = (
+        inputs[sample][0] * np.cos(inputs[sample][0] * samples_u[sample]["t"])
+    ).reshape(-1, 1)
 
 # I want to instantiate a partially gerenated object inside the class.
-poly = pqo.hermiteObs(l=1,p=2, q=1)
+poly = pqo.legendreObs(l=2, p=3, q=1)
 # test the decomposition
-dec = dcp.Decomposition(poly, samples_u)
-# Instead of providing a string to indicate the polynomial, provide an empty
-# polynominomial
+dec = pqDecomposition(poly, samples_u)
+# # test the svd decomposition
+sdec = svdDecomposition(poly, [samples_u[i] for i in tr])
+# test the sid decomosition
+sidd = sidDecomposition(poly, [samples_u[i] for i in tr])
+# Test the decomposition
+
+#
+# Get the initial conditions
+# y0 = [samples_u[i]["y"][0, :] for i in ts]
+# n_p = [np.shape(samples_u[i]["t"])[0] for i in ts]
+# u = [samples_u[i]["u"] for i in ts]
+# Get the number of points
+err_dec = dec.error([samples_u[i] for i in ts])
+err_sdec = sdec.error([samples_u[i] for i in ts])
+
+pred_dec = dec.predict_from_test([samples_u[i] for i in ts])
+pred_sdec = sdec.predict_from_test([samples_u[i] for i in ts])
+
+
+
+import matplotlib.pyplot as plt
+
+plt.figure(1)
+# for sample in [samples_u[i] for i in tr]:
+#     plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'b')
+for sample in [samples_u[i] for i in ts]:
+    plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'r')
+for prediction in pred_dec:
+    plt.plot(prediction[:, 0], prediction[:, 1], 'k')
+
+plt.figure(2)
+for sample in [samples_u[i] for i in ts]:
+    plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'r')
+for prediction in pred_sdec:
+    plt.plot(prediction[:, 0], prediction[:, 1], 'k')
+
+plt.show()
 
 duff_EDMD = pqEDMD(p=[5, 7], q=[0.5, 1], polynomial=poly, dyn_dcp="rrr")
 duff_decomps_u = duff_EDMD.fit([samples_u[i] for i in tr])
