@@ -17,7 +17,7 @@ class svdDecomposition(pqdecomposition.pqDecomposition):
         observable,
         system,
     ):
-        # Class to perform the regression 
+        # Class to perform the regression
         # and use the SVD as the inverse engine
         self.observable = observable
         o_pst, o_fut = self.y_snapshots(system)
@@ -36,22 +36,23 @@ class svdDecomposition(pqdecomposition.pqDecomposition):
         self.l = self.observable.l
         self.n_obs = np.shape(self.observable.pq_mat())[1] + 1
         # Perform the SVD of the past data
-        Ud, S, V = np.linalg.svd(o_pst)
-        # get the effective rank
-        r = self.effective_rank(S, o_pst)
-        # trim the matrices
-        Ur = Ud[:, :r]
-        Sr = np.diag(S[:r])
-        Vr = V[:, :r]
-
-        Dr = np.linalg.lstsq(Sr, Ur.T @ o_fut, rcond=None)[0]
-
-        U = Vr.T @ Dr
+        U = self.svd_solution(o_fut, o_pst)  # svd(lhs, rhs)
 
         self.A = self.matrix_A(U)
         self.B = self.matrix_B(U)
         self.C = self.matrix_C()
-        self.D = np.zeros((self.l, 1))
+        self.D = np.zeros((self.l, self.m))
+
+    def svd_solution(self, lhs, rhs):
+        # Comment here because of python bug
+        Ud, S, V = np.linalg.svd(rhs)
+        # get the effective rank
+        r = self.effective_rank(S, rhs)
+        # trim the matrices
+        Ur = Ud[:, :r]
+        Sri = np.diag(1 / (S[:r]))
+        Vr = V[:r, :]
+        return Vr.T @ Sri @ Ur.T @ lhs
 
     def effective_rank(self, s, vareval):
         '''
@@ -59,7 +60,7 @@ class svdDecomposition(pqdecomposition.pqDecomposition):
         vareval is the matrix to evaluate.
         '''
         r = 1
-        while (r <= self.n_obs) and (
+        while (r < vareval.shape[1]) and (
             s[r] > max(vareval.shape) * sys.float_info.epsilon * s[0]
         ):
             r += 1

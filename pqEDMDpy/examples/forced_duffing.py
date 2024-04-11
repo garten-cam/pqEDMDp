@@ -1,25 +1,26 @@
-import matplotlib.pyplot as plt
-import numpy as np
 # from matplotlib.colors import same_color
 from scipy.integrate import odeint
+import numpy as np
+import matplotlib.pyplot as plt
 
 from pqedmdpy import pqObservable as pqo
-from pqedmdpy.decompositions.pqdecomposition import pqDecomposition
+# from pqedmdpy.decompositions.pqdecomposition import pqDecomposition
+# from pqedmdpy.decompositions.svddecomposition import svdDecomposition
 from pqedmdpy.decompositions.siddecomposition import sidDecomposition
-from pqedmdpy.decompositions.svddecomposition import svdDecomposition
-from pqedmdpy.pqEDMD import pqEDMD
+from pqedmdpy.decompositions.sidolsdecomposition import sidOlsDecomposition
+from pqedmdpy.pqEDMDp import pqEDMDp
 
-rng = np.random.default_rng(1234)
+rng = np.random.default_rng(12345)
 num_ics = 10
-ics_width = 4
+ics_width = 5
 ics = ics_width * rng.random((num_ics, 2)) - ics_width / 2
 
 t_end = 30
-n_points = 10 * t_end
+n_points = 301
 
 # # fit the alg
-ts = [1, 2, 3, 4]
-tr = [0, 5]
+tr = [1, 2, 3, 4, 6, 8]
+ts = [0, 5, 7, 9]
 
 # Test the code for inputs
 # use some random input
@@ -54,49 +55,76 @@ for sample in range(num_ics):
         inputs[sample][0] * np.cos(inputs[sample][0] * samples_u[sample]["t"])
     ).reshape(-1, 1)
 
+EDMD = pqEDMDp(p=[1, 2, 3, 4], q=[0.5, 0.6, 0.7],
+               obs=pqo.laguerreObs, dyn_dcp=sidDecomposition)
+
+dcps = EDMD.fit([samples_u[i] for i in tr])
+
+# Calculate the error
+# plt.figure(1)
+# # for sample in [samples_u[i] for i in tr]:
+# #     plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'b')
+# for sample in [samples_u[i] for i in ts]:
+#     plt.plot(sample["y"][:, 0], sample["y"][:, 1], "r")
+#
+# plt.show()
 # I want to instantiate a partially gerenated object inside the class.
 poly = pqo.legendreObs(l=2, p=3, q=1)
 # test the decomposition
-dec = pqDecomposition(poly, samples_u)
-# # test the svd decomposition
-sdec = svdDecomposition(poly, [samples_u[i] for i in tr])
-# test the sid decomosition
+# Development of the pqEDMD wrapper
+decpol = pqo.laguerreObs()
+decp = sidDecomposition()
+
+# dec = pqDecomposition(poly, [samples_u[i] for i in tr])
+# # # test the svd decomposition
+# sdec = svdDecomposition(poly, [samples_u[i] for i in tr])
+# # test the sid decomosition
 sidd = sidDecomposition(poly, [samples_u[i] for i in tr])
 # Test the decomposition
+sido = sidOlsDecomposition(poly, [samples_u[i] for i in tr])
 
 #
-# Get the initial conditions
-# y0 = [samples_u[i]["y"][0, :] for i in ts]
-# n_p = [np.shape(samples_u[i]["t"])[0] for i in ts]
-# u = [samples_u[i]["u"] for i in ts]
-# Get the number of points
-err_dec = dec.error([samples_u[i] for i in ts])
-err_sdec = sdec.error([samples_u[i] for i in ts])
+# err_dec = dec.error([samples_u[i] for i in ts])
+# err_sdec = sdec.error([samples_u[i] for i in ts])
+err_sidd = sidd.error([samples_u[i] for i in ts])
+err_sido = sido.error([samples_u[i] for i in ts])
 
-pred_dec = dec.predict_from_test([samples_u[i] for i in ts])
-pred_sdec = sdec.predict_from_test([samples_u[i] for i in ts])
-
+# pred_dec = dec.predict_from_test([samples_u[i] for i in ts])
+# pred_sdec = sdec.predict_from_test([samples_u[i] for i in ts])
+pred_sidd = sidd.predict_from_test([samples_u[i] for i in ts])
+pred_sido = sido.predict_from_test([samples_u[i] for i in ts])
 
 
-import matplotlib.pyplot as plt
-
-plt.figure(1)
-# for sample in [samples_u[i] for i in tr]:
-#     plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'b')
+# plt.figure(1)
+# # for sample in [samples_u[i] for i in tr]:
+# #     plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'b')
+# for sample in [samples_u[i] for i in ts]:
+#     plt.plot(sample["y"][:, 0], sample["y"][:, 1], "r")
+# for prediction in pred_dec:
+#     plt.plot(prediction["y"][:, 0], prediction["y"][:, 1], "k")
+#
+# plt.figure(2)
+# for sample in [samples_u[i] for i in ts]:
+#     plt.plot(sample["y"][:, 0], sample["y"][:, 1], "r")
+# for prediction in pred_sdec:
+#     plt.plot(prediction["y"][:, 0], prediction["y"][:, 1], "k")
+#
+plt.figure(3)
 for sample in [samples_u[i] for i in ts]:
-    plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'r')
-for prediction in pred_dec:
-    plt.plot(prediction[:, 0], prediction[:, 1], 'k')
+    plt.plot(sample["y"][:, 0], sample["y"][:, 1], "r")
+for prediction in pred_sidd:
+    plt.plot(prediction["y"][:, 0], prediction["y"][:, 1], "k")
 
-plt.figure(2)
+plt.figure(4)
 for sample in [samples_u[i] for i in ts]:
-    plt.plot(sample["y"][:, 0], sample["y"][:, 1], 'r')
-for prediction in pred_sdec:
-    plt.plot(prediction[:, 0], prediction[:, 1], 'k')
+    plt.plot(sample["y"][:, 0], sample["y"][:, 1], "r")
+for prediction in pred_sido:
+    plt.plot(prediction["y"][:, 0], prediction["y"][:, 1], "k")
 
+sidd.spectrum()
 plt.show()
 
-duff_EDMD = pqEDMD(p=[5, 7], q=[0.5, 1], polynomial=poly, dyn_dcp="rrr")
+
 duff_decomps_u = duff_EDMD.fit([samples_u[i] for i in tr])
 
 err = np.zeros((len(duff_decomps_u), 1))
@@ -105,10 +133,12 @@ for ind, decomp in enumerate(duff_decomps_u):
 
 best_duff_decp = np.argmin(err)
 
-app_u = duff_decomps_u[best_duff_decp].pred_from_test([samples_u[i] for i in ts])
+app_u = duff_decomps_u[best_duff_decp].pred_from_test(
+    [samples_u[i] for i in ts])
 
 [plt.plot(samples_u[i]["sv"][:, 0], samples_u[i]["sv"][:, 1], "r") for i in tr]
 [plt.plot(samples_u[i]["sv"][:, 0], samples_u[i]["sv"][:, 1], "b") for i in ts]
-[plt.plot(app_u[i]["sv"][:, 0], app_u[i]["sv"][:, 1], "k-.") for i in range(len(ts))]
+[plt.plot(app_u[i]["sv"][:, 0], app_u[i]["sv"][:, 1], "k-.")
+ for i in range(len(ts))]
 plt.show()
 x = 1

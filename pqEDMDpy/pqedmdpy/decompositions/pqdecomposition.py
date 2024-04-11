@@ -3,8 +3,11 @@ Author: Camilo Garcia Tenotio
 returns a pq decomposition object
 """
 
+import sys
+
 import numpy as np
 from sympy import Matrix, linear_eq_to_matrix, linsolve, symbols
+import matplotlib.pyplot as plt
 
 
 class pqDecomposition:
@@ -40,7 +43,7 @@ class pqDecomposition:
         self.A = self.matrix_A(U)
         self.B = self.matrix_B(U)
         self.C = self.matrix_C()
-        self.D = np.zeros((self.l, 1))
+        self.D = np.zeros((self.l, self.m))
 
     def matrix_A(self, u):
         return u[:-self.m, :-self.m].T
@@ -79,12 +82,13 @@ class pqDecomposition:
         ct_sol = linsolve(b, symbols(f"z:{self.l}"))
         Az[:, 0] = Matrix(ct_sol.args[0])
         # create the c matrix
-        c = np.zeros((self.observable.l, self.observable.pq_mat().shape[1] + 1))
+        c = np.zeros(
+            (self.observable.l, self.observable.pq_mat().shape[1] + 1))
         # Assign the c entries
         c[:, : self.l + 1] = Az
         return c
 
-    def y_snapshots(self, sys):
+    def y_snapshots(self, system):
         # function to evaluate the polynomials
         obsrv = self.observable.obs_fun()
         # Evaluate the Ys. In a system there are many samples. This function
@@ -97,7 +101,7 @@ class pqDecomposition:
                         np.shape(sp["y"])[0] - 2, 1
                     )),
                     np.squeeze(obsrv(*sp["y"][:-2, :].T).T)
-                )) for sp in sys
+                )) for sp in system
             ]
         ))
         y_ob_fut = np.vstack((
@@ -107,51 +111,62 @@ class pqDecomposition:
                         np.shape(sp["y"])[0] - 2, 1
                     )),
                     np.squeeze(obsrv(*sp["y"][1:-1, :].T).T)
-                )) for sp in sys
+                )) for sp in system
             ]
         ))
         return y_ob_pst, y_ob_fut
 
-    def u_snapshots(self, sys):
+    def u_snapshots(self, system):
         # This the same as the variables y without observation
-        u_pst = np.concatenate([sp["u"][:-2, :] for sp in sys], axis=0)
-        u_fut = np.concatenate([sp["u"][1:-1, :] for sp in sys], axis=0)
+        u_pst = np.concatenate([sp["u"][:-2, :] for sp in system], axis=0)
+        u_fut = np.concatenate([sp["u"][1:-1, :] for sp in system], axis=0)
         return u_pst, u_fut
 
-    def error(self, sys):
-        predictions = self.predict_from_test(sys)
+    def error(self, system):
+        predictions = self.predict_from_test(system)
         # calculate the error from all the predictions
         errors = [
-            np.sum(np.absolute(pred - sys_i["y"]) / (sys_i["y"] + sys.float_info.epsilon)) / pred.shape[0]
-            for pred, sys_i in zip(predictions, sys)
+            np.sum(
+                np.absolute(pred["y"] - sys_i["y"]) /
+                (np.absolute(sys_i["y"]) + sys.float_info.epsilon)
+            ) / pred["y"].shape[0]
+            for pred, sys_i in zip(predictions, system)
         ]
-        error = np.sum(errors) / self.observable.l / len(sys)
+        error = np.sum(errors) / self.observable.l / len(system)
         return error
 
-    def predict_from_test(self, sys):
+    def predict_from_test(self, system):
         # Get the initial conditions
-        y0 = [sys_i["y"][0, :] for sys_i in sys]
-        n_p = [np.shape(sys_i["t"])[0] for sys_i in sys]
-        u = [sys_i["u"] for sys_i in sys]
+        y0 = [sys_i["y"][0, :] for sys_i in system]
+        n_p = [np.shape(sys_i["t"])[0] for sys_i in system]
+        u = [sys_i["u"] for sys_i in system]
 
         pred_test = self.predict(y0, n_p, u)
         return pred_test
 
     def predict(self, y0, n_points, u=[]):
         # if the input is none, assign it as an array of zeros
-        # Save the obsevable to avoid verbosity
+        # Save the obse:vable to avoid verbosity
         obs = self.observable.obs_fun()
         # I think preallocation may help in doing this
         prediction = [
-            np.zeros((n_p, self.observable.l)) for n_p in n_points
+            {'y': np.zeros((n_p, self.observable.l))} for n_p in n_points
         ]
         for o_ind, orbit in enumerate(prediction):
-            orbit[0, :] = y0[o_ind]
-            for s_ind, step in enumerate(orbit[1:, :]):
-                x_prev = orbit[s_ind, :]
+            orbit['y'][0, :] = y0[o_ind]
+            for s_ind, _ in enumerate(orbit["y"][1:, :]):
+                x_prev = orbit["y"][s_ind, :]
                 x_post = self.A @ np.hstack((
                     np.ones((1, 1)),
                     obs(*x_prev).T
                 )).T + self.B @ u[o_ind][s_ind, :].reshape(1, -1).T
-                orbit[s_ind + 1, :] = (self.C @ x_post + self.D @ u[o_ind][s_ind].reshape(1, -1).T).T
+                orbit['y'][s_ind + 1, :] = (self.C @ x_post +
+                                            self.D @ u[o_ind][s_ind, :].reshape(1, -1).T).T
         return prediction
+
+    def spectrum(self):
+        plt.figure()
+        e = np.linalg.eig(self.A)
+        plt.scatter(np.real(e.eigenvalues), np.imag(e.eigenvalues))
+        t = np.linspace(0, 2 * np.pi, 600)
+        plt.plot(np.sin(t), np.cos(t))
