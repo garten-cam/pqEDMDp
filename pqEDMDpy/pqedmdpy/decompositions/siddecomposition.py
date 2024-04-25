@@ -34,19 +34,122 @@ class sidDecomposition(svddecomposition.svdDecomposition):
         Ysid = np.hstack(
             [self.block_hankel(per_x.T, 2 * self.hl_bl) for per_x in xeval]
         )
-        Usid = np.hstack([self.block_hankel(per_u.T, 2 * self.hl_bl)
-                         for per_u in u])
+        if "u" in system[0].keys():
+            # if there is an input to the system
+            Usid = np.hstack([self.block_hankel(per_u.T, 2 * self.hl_bl)
+                              for per_u in u])
+        else:
+            Usid = np.empty((2 * self.hl_bl * self.m, Ysid.shape[1]))
         # Compute Gamma
-        self.computeGamma(Ysid, Usid)
+        # # # self.computeGamma(Ysid, Usid)
         # In python, I can modify the object in any method.
         # I do not need to return the matrices.
-        self.ACK(Ysid, Usid)
+        # # # self.ACK(Ysid, Usid)
+        self.ACKn(Ysid, Usid)
         # From the new A and C, recompute Gamma
         self.recomputeGamma()
         # Now, from the A, C, and the data from the system, get the B and D
         # matrices.
         self.BD(xeval, u)
         self.edmdC = self.matrix_C()[:, 1:]
+
+    def compute_svd(self, Ysid, Usid):
+        # Perform the oblique projection
+        # The last approach is not extendable. Refactoring oblique P
+        Yf = Ysid[self.hl_bl * self.n_obs:, :]
+        Uf = Usid[self.hl_bl * self.m:, :]
+        Wp = np.vstack(
+            (
+                Usid[: self.hl_bl * self.m, :],  # U_past
+                Ysid[: self.hl_bl * self.n_obs, :],  # Y_past
+            )
+        )
+        Oi = self.oblique_prj(Yf, Uf, Wp)
+        WOW = self.z_proj_O_x(Oi, Uf)
+        # Finally, the singular value decomposition
+        U, S, _ = np.linalg.svd(WOW)
+        return U, S
+
+    def ACKn(self, Ysid, Usid):
+        U, S = self.compute_svd(Ysid, Usid)
+        # possible n's from the order of the system,
+        # untill the criterion from some paper
+        ns = np.arange(
+            self.l,
+            2 * np.sum(np.log(S) > 0.5 * (np.log(S[0] + np.log(S[-1])))), 1
+        )
+        nv = [self.n_cost(ni, U, S, Ysid, Usid)[0] for ni in ns]
+        # order of the system
+        self.n = np.argmin(nv) + self.l
+        # Calculate everithing
+        _, res, self.A, self.C = self.n_cost(self.n, U, S, Ysid, Usid)
+        # over all possible values of n, calculate the error
+        # Optimize the solution for the order of the System
+
+    def n_cost(self, n, U, S, Ysid, Usid):
+        # Truncate according to the order
+        Un = U[:, : n]
+        Sn = S[: n]
+        # Gamma, gamma_minus and their inverses
+        gam = Un @ np.diag(np.sqrt(Sn))
+        gmm = gam[: -self.n_obs, :]
+        gam_inv = np.linalg.pinv(gam)
+        gmm_inv = np.linalg.pinv(gmm)
+
+        wp = np.vstack(
+            (
+                Usid[: self.hl_bl * self.m, :],  # U_past
+                Ysid[: self.hl_bl * self.n_obs, :],  # Y_past
+            )
+        )
+        z_i = self.z_proj_x(
+            Ysid[self.hl_bl * self.n_obs:, :],  # Y_future
+            np.vstack(
+                (
+                    wp,
+                    Usid[self.hl_bl * self.m:, :],  # U_future
+                )
+            ),
+        )
+        # zip = Yf-/[Wp+;Uf-]
+        wpp = np.vstack(
+            (
+                Usid[: (self.hl_bl + 1) * self.m, :],  # U_past+
+                Ysid[: (self.hl_bl + 1) * self.n_obs, :],  # Y_past+
+            )
+        )
+        zip = self.z_proj_x(
+            Ysid[(self.hl_bl + 1) * self.n_obs:, :],
+            np.vstack(
+                (
+                    wpp,
+                    Usid[(self.hl_bl + 1) * self.m:, :],  # U_future+
+                )
+            ),
+        )
+        # left-hand-side = (gmm_inv*zip;Yii)
+        lhs = np.vstack(
+            (
+                gmm_inv @ zip,
+                Ysid[(self.hl_bl - 1) * self.n_obs: (self.hl_bl) * self.n_obs, :],
+            )
+        )
+        # right-hand-side = (gam_inv*z_i;Uf)
+        rhs = np.vstack(
+            (
+                gam_inv @ z_i,
+                Usid[self.hl_bl * self.m:, :],  # U_future
+            )
+        )
+        # ac = lhs @ np.linalg.pinv(rhs)
+        ac = self.svd_solution(lhs.T, rhs.T).T
+        # I do not need to compute and then extract.
+        a = ac[: n, : n]
+        c = ac[n:, : n]
+        # Calculate the residuals
+        res = lhs - ac @ rhs
+        cost = np.sum(np.abs(res))
+        return cost, res, a, c
 
     def ACK(self, Ysid, Usid):
         # Get the A, C, and Kalman gains matrices
@@ -151,7 +254,7 @@ class sidDecomposition(svddecomposition.svdDecomposition):
         for b_i, _ in enumerate(rhsblk):
             rhsblk[b_i][:, : self.n * self.m] = np.vstack((ukrac[b_i][:-1]))
             rhsblk[b_i][:, self.n * (b_i + self.m): self.n *
-                        (b_i + self.m + 1)] = np.vstack((ac[1:]))
+                        (b_i + self.m + 1)] = np.vstack((ac[1:yeval[b_i].shape[0]]))
         # stack all the blocks
         rhs = np.vstack((rhsblk))
         lhs = np.vstack((lhsblk))
@@ -161,45 +264,19 @@ class sidDecomposition(svddecomposition.svdDecomposition):
                             (self.n, self.m), order='F')
         self.D = np.zeros((self.n_obs, self.m))
 
-    def computeGamma(self, Ysid, Usid):
-        # Perform the oblique projection
-        # The last approach is not extendable. Refactoring oblique P
-        Yf = Ysid[self.hl_bl * self.n_obs:, :]
-        Uf = Usid[self.hl_bl * self.m:, :]
-        Wp = np.vstack(
-            (
-                Usid[: self.hl_bl * self.m, :],  # U_past
-                Ysid[: self.hl_bl * self.n_obs, :],  # Y_past
-            )
-        )
-        Oi = self.oblique_prj(Yf, Uf, Wp)
-        WOW = self.z_proj_O_x(Oi, Uf)
-        # Finally, the singular value decomposition
-        U, S, _ = np.linalg.svd(WOW)
-
-        # This might be up for debate
-        self.n = int(np.min([4 * self.n_obs, np.sum(S / np.max(S) > 0.001)]))
-        # Trim the matrices according to the order
-        # r
-        U = U[:, : self.n]
-        S = S[: self.n]
-        # Calculate the Gamma matrix
-        self.Gamma = U @ np.diag(np.sqrt(S))
-
     def recomputeGamma(self):
         # Assign the new C to the Gamma matrix
-        self.Gamma[: self.n_obs, :] = self.C
+        gam_arr = [self.C for _ in range(self.hl_bl)]
         # iteratively multiply by A
         for blk in range(1, self.hl_bl):
-            self.Gamma[blk * self.n_obs: (blk + 1) * self.n_obs, :] = (
-                self.Gamma[(blk - 1) * self.n_obs: blk * self.n_obs] @ self.A
-            )
+            gam_arr[blk] = gam_arr[blk - 1] @ self.A
+        self.Gamma = np.vstack((gam_arr))
 
     def fullGamma(self, samples):
-        gamm = [self.C for _ in range(samples)]
-        for s, _ in enumerate(gamm[1:]):
-            gamm[s + 1] = gamm[s] @ self.A
-        return gamm
+        gam_arr = [self.C for _ in range(samples)]
+        for s in range(1, samples):
+            gam_arr[s] = gam_arr[s - 1] @ self.A
+        return gam_arr
 
     def oblique_prj(self, X, Y, Z):
         # Oi = X/_{Y}(Z) the oblique projection of X, onto
@@ -292,7 +369,7 @@ class sidDecomposition(svddecomposition.svdDecomposition):
         # I only need the minimum to set the hankel blocks
         min_spl = np.min([sp.shape[0] for sp in yeval])
         # maximize the number of blocks while keeping the hankel matrix fat
-        self.hl_bl = int(np.floor((min_spl + 1) / (self.n_obs + 2)))
+        self.hl_bl = int(np.floor((min_spl + 1) / (2 * (self.n_obs + 1))))
 
     @ staticmethod
     def block_hankel(mat, s):
