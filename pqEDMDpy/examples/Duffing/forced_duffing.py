@@ -1,14 +1,14 @@
 # from matplotlib.colors import same_color
-from scipy.integrate import odeint
-import numpy as np
-import matplotlib.pyplot as plt
-
+from pqedmdpy.pqEDMDp import pqEDMDp
+from pqedmdpy.decompositions.sidolsdecomposition import sidOlsDecomposition
+from pqedmdpy.decompositions.siddecomposition import sidDecomposition
 from pqedmdpy import pqObservable as pqo
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.integrate import odeint
+
 # from pqedmdpy.decompositions.pqdecomposition import pqDecomposition
 # from pqedmdpy.decompositions.svddecomposition import svdDecomposition
-from pqedmdpy.decompositions.siddecomposition import sidDecomposition
-from pqedmdpy.decompositions.sidolsdecomposition import sidOlsDecomposition
-from pqedmdpy.pqEDMDp import pqEDMDp
 
 rng = np.random.default_rng(12345)
 num_ics = 10
@@ -55,7 +55,7 @@ for sample in range(num_ics):
         inputs[sample][0] * np.cos(inputs[sample][0] * samples_u[sample]["t"])
     ).reshape(-1, 1)
 
-EDMD = pqEDMDp(p=[1, 2, 3, 4], q=[0.5, 0.6, 0.7],
+EDMD = pqEDMDp(p=[3, 4], q=[0.5, 0.6, 0.7],
                obs=pqo.laguerreObs, dyn_dcp=sidDecomposition)
 
 dcps = EDMD.fit([samples_u[i] for i in tr])

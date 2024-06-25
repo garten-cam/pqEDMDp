@@ -6,20 +6,22 @@ returns a pq decomposition object
 import sys
 
 import numpy as np
+from pqedmdpy.pqObservable import pqObservable
 from sympy import Matrix, linear_eq_to_matrix, linsolve, symbols
 import matplotlib.pyplot as plt
 
 
 class pqDecomposition:
+    """
+    Class for performing a decomposition to a particular system based on a set
+    of obsevables.
+    """
 
     def __init__(
         self,
-        observable,
-        system,
+        observable: pqObservable,
+        system: dict,
     ):
-        # General Decomposition class.
-        # Implements the ordinary squa
-        # es solution
         self.observable = observable
         o_pst, o_fut = self.y_snapshots(system)
 
@@ -27,32 +29,34 @@ class pqDecomposition:
         # We need to check for inputs
         if "u" in system[0].keys():
             # if there is an input to the system
-            self.m = np.shape(system[0]["u"])[1]
+            n_in = np.shape(system[0]["u"])[1]
             u_pst, u_fut = self.u_snapshots(system)
             o_pst = np.concatenate((o_pst, u_pst), axis=1)
             o_fut = np.concatenate((o_fut, u_fut), axis=1)
         else:
-            self.m = 0
+            n_in = 0
+
+        self.sys_m: int = n_in
         # Calculate
         g = np.matmul(o_pst.T, o_pst)
         a = np.matmul(o_pst.T, o_fut)
         U = np.matmul(np.linalg.inv(g), a)
-        self.l = self.observable.l
-        self.n = np.shape(self.observable.pq_mat())[1] + 1
+        self.sys_l: int = self.observable.obs_l
+        self.sys_n: int = np.shape(self.observable.pq_mat())[1] + 1
         # Get the system matrices
-        self.A = self.matrix_A(U)
-        self.B = self.matrix_B(U)
-        self.C = self.matrix_C()
-        self.D = np.zeros((self.l, self.m))
+        self.A: np.ndarray = self.matrix_A(U)
+        self.B: np.ndarray = self.matrix_B(U)
+        self.C: np.ndarray = self.matrix_C()
+        self.D: np.ndarray = np.zeros((self.sys_l, self.sys_m))
 
-    def matrix_A(self, u):
-        return u[:-self.m, :-self.m].T
+    def matrix_A(self, u) -> np.ndarray:
+        return u[:-self.sys_m, :-self.sys_m].T
 
     def matrix_B(self, u):
-        if self.m:
-            b = u[-self.m:, :-self.m].T
+        if self.sys_m:
+            b = u[-self.sys_m:, :-self.sys_m].T
         else:
-            b = np.zeros((self.n, 1))
+            b = np.zeros((self.sys_n, 1))
         return b
 
     def matrix_C(self):
@@ -61,12 +65,12 @@ class pqDecomposition:
         # Given the ordering of the polynomials, we need the additive inverse
         # of the first "l" terms
         orders = self.observable.poly_base()
-        order_one_o = Matrix(orders[:self.l])
+        order_one_o = Matrix(orders[:self.sys_l])
         # we also need a dummy variable for the representing the functions
         # As many dummy variables as there are states in the system
-        z = Matrix([*symbols(f"z:{self.l}")])
+        z = Matrix([*symbols(f"z:{self.sys_l}")])
         # define again the variables
-        x = symbols(f"x:{self.l}")
+        x = symbols(f"x:{self.sys_l}")
         # Equation system to solve
         f_to_inv = order_one_o - z
         # Convert to a system of equations
@@ -75,17 +79,17 @@ class pqDecomposition:
         sol = linsolve((A, b), x)
         # get the new matrices for A
         Az, _ = linear_eq_to_matrix(
-            sol.args[0], [symbols("1"), *symbols(f"z:{self.l}")]
+            sol.args[0], [symbols("1"), *symbols(f"z:{self.sys_l}")]
         )
         # Add the constant term in case b = constant +- z
         # Step by Step
-        ct_sol = linsolve(b, symbols(f"z:{self.l}"))
+        ct_sol = linsolve(b, symbols(f"z:{self.sys_l}"))
         Az[:, 0] = Matrix(ct_sol.args[0])
         # create the c matrix
         c = np.zeros(
-            (self.observable.l, self.observable.pq_mat().shape[1] + 1))
+            (self.observable.obs_l, self.observable.pq_mat().shape[1] + 1))
         # Assign the c entries
-        c[:, : self.l + 1] = Az
+        c[:, : self.sys_l + 1] = Az
         return c
 
     def y_snapshots(self, system):
@@ -116,7 +120,7 @@ class pqDecomposition:
         ))
         return y_ob_pst, y_ob_fut
 
-    def u_snapshots(self, system):
+    def u_snapshots(self, system) -> np.ndarray:
         # This the same as the variables y without observation
         u_pst = np.concatenate([sp["u"][:-2, :] for sp in system], axis=0)
         u_fut = np.concatenate([sp["u"][1:-1, :] for sp in system], axis=0)
@@ -132,7 +136,7 @@ class pqDecomposition:
             ) / pred["y"].shape[0]
             for pred, sys_i in zip(predictions, system)
         ]
-        error = np.sum(errors) / self.observable.l / len(system)
+        error = np.sum(errors) / self.observable.obs_l / len(system)
         return error
 
     def predict_from_test(self, system):
@@ -150,7 +154,7 @@ class pqDecomposition:
         obs = self.observable.obs_fun()
         # I think preallocation may help in doing this
         prediction = [
-            {'y': np.zeros((n_p, self.observable.l))} for n_p in n_points
+            {'y': np.zeros((n_p, self.observable.obs_l))} for n_p in n_points
         ]
         for o_ind, orbit in enumerate(prediction):
             orbit['y'][0, :] = y0[o_ind]

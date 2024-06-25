@@ -11,50 +11,55 @@ from sympy.polys import orthopolys as op
 
 class pqObservable:
 
-    def __init__(self, p=2, q=0.8, l=2):  # noqa: E741
-        self.p = p  # max polynomial order
-        self.q = q  # q quasi norm
-        self.l = l  # number of variables to observe
+    def __init__(self, p: int = 2, q: float = 0.8, l: int = 2) -> None:  # noqa: E741
+        self.obs_p = p  # max polynomial order
+        self.obs_q = q  # q quasi norm
+        self.obs_l = l  # number of variables to observe
 
-    def pq_mat(self):
-        pm = self.p_matrix()  # get the p matrix
-        # reduce according to the q-quasi norm
-        pqm = pm[:, np.linalg.norm(pm, ord=self.q, axis=0) <= self.p]
-        # sort in lexicographical ordering
-        pqm = pqm[:, np.argsort(np.linalg.norm(pqm, axis=0, ord=self.p), kind="stable")]
-        return pqm
+    def obs_fun(self) -> callable:
+        x = symbols(f"x:{self.obs_l}")
+        p_b = self.poly_base()
+        return lambdify(x, Matrix(p_b), modules="numpy")
 
-    def poly_base(self):
-        x = symbols(f"x:{self.l}")
+    def poly_base(self) -> np.ndarray:
+        x = symbols(f"x:{self.obs_l}")
         orders = self.pq_mat()
         o_sym = self.assign_poly(orders, x)
         poly_b = np.prod(o_sym, axis=0)
         return poly_b
 
-    def obs_fun(self):
-        x = symbols(f"x:{self.l}")
-        p_b = self.poly_base()
-        return lambdify(x, Matrix(p_b), modules="numpy")
+    def pq_mat(self) -> np.ndarray:
+        pm = self.p_matrix()  # get the p matrix
+        # reduce according to the q-quasi norm
+        pqm = pm[:, np.round(np.linalg.norm(
+            pm, ord=self.obs_q, axis=0), 3) <= self.obs_p]
+        # sort in lexicographical ordering
+        pqm = pqm[:, np.argsort(np.linalg.norm(
+            pqm, axis=0, ord=self.obs_p), kind="stable")]
+        return pqm
 
-    def p_matrix(self):
-        pm = np.zeros((self.l, ((self.p + 1) ** (self.l)) - 1), dtype=int)
-        if (self.p ** (self.l) - 1) > 9.0e18:
+    def p_matrix(self) -> np.ndarray:
+        pm = np.zeros(
+            (self.obs_l, ((self.obs_p + 1) ** (self.obs_l)) - 1), dtype=int)
+        if (self.obs_p ** (self.obs_l) - 1) > 9.0e18:
             raise ValueError(
                 "number of state variables and p value\
                     combination exceeds maximum size"
             )
         else:
             # preallocate the final matrix
-            for col in range(1, (self.p + 1) ** (self.l)):
-                base_string = np.base_repr(col, self.p + 1)
-                base_string = "0" * (self.l - len(base_string)) + base_string
+            for col in range(1, (self.obs_p + 1) ** (self.obs_l)):
+                base_string = np.base_repr(col, self.obs_p + 1)
+                base_string = "0" * \
+                    (self.obs_l - len(base_string)) + base_string
                 pm[:, col - 1] = np.flip([int(x) for x in base_string])
         return pm
 
-    def assign_poly(self, orders, xsym):
+    def assign_poly(self, orders, xsym) -> list:
+        # Monomials, never use these, they are not orthogonal.
         return [[x**ord for ord in orders[c]] for c, x in enumerate(xsym)]
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         equal = False
         # If the shapes are not equal, they are definitely not equal
         if self.pq_mat().shape == other.pq_mat().shape:
@@ -63,7 +68,7 @@ class pqObservable:
         return equal
 
     def __hash__(self):
-        return hash((self.p))
+        return hash((self.obs_p))
 
 
 class hermiteObs(pqObservable):
