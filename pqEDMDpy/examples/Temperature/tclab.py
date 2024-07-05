@@ -50,30 +50,23 @@ tr = [0, 1, 3, 5]
 # define the decomposition wrapers
 sidREDMD = pqEDMDp(p=[2, 3], q=[0.6, 1.2],
                    obs=pqo.pqObservable, dyn_dcp=sidDecomposition)
-sidOEDMD = pqEDMDp(p=[2, 3], q=[0.6, 1.2],
-                   obs=pqo.legendreObs, dyn_dcp=sidOlsDecomposition)
 svdEDMD = pqEDMDp(p=[2, 3], q=[0.6, 1.2, 2],
                   obs=pqo.legendreObs, dyn_dcp=svdDecomposition)
 
 # fit them
 sidRT = sidREDMD.fit([samples[i] for i in tr])
-sidOT = sidOEDMD.fit([samples[i] for i in tr])
 svdT = svdEDMD.fit([samples[i] for i in tr])
 
 # get the error
 err_R = [ri.error([samples[i] for i in ts]) for ri in sidRT]
-err_O = [oi.error([samples[i] for i in ts]) for oi in sidOT]
 err_svd = [si.error([samples[i] for i in ts]) for si in svdT]
 
 # test the test
 testR = sidRT[np.argmin(err_R)].predict_from_test([samples[i] for i in ts])
-testO = sidOT[np.argmin(err_O)].predict_from_test([samples[i] for i in ts])
 testS = svdT[np.argmin(err_svd)].predict_from_test([samples[i] for i in ts])
 # add the time for plotting
 for itR, tst in zip(testR, [samples[i] for i in ts]):
     itR['t'] = tst['t']
-for itO, tst in zip(testO, [samples[i] for i in ts]):
-    itO['t'] = tst['t']
 # for plotting purposes, add the time to the output dictionaty
 for itS, tst in zip(testS, [samples[i] for i in ts]):
     itS['t'] = tst['t']
