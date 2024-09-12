@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pqEDMDp"
+authors = [
+{name = "Camilo Garcia Ph.D.", email = "camilo_7@msn.com"}
+]
+description = "Python implementation of the pqEDMD algorithm and the different types of decomposition"
+readme = "README.md"
+version = "0.0.1"
+dependencies = [
+	"numpy",
+	"sympy",
+	"scipy",
+	"matplotlib"
+]
