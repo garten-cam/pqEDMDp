@@ -4,15 +4,14 @@ import matplotlib.pyplot as plt
 
 from pqedmdp import pqEDMDp
 import pqobservable as pqo
-import decompositions.svddecomposition as svd
-
+import decompositions.siddecomposition as sid
 rng = np.random.default_rng(73)
 num_ics = 6
 ics_width = 4
 ics = ics_width * rng.random((num_ics, 2)) - ics_width / 2
 
 tfin = 30
-n_points = 7*tfin + 1
+n_points = 6*tfin + 1
 
 
 def duffodeu(x, t, u):
@@ -37,7 +36,7 @@ for ic, expi, ui in zip(ics, exp, u):
     t = np.linspace(0, tfin, n_points)
     sol = odeint(duffodeu, ic, t, args=(ui[0],))  # How to avoid this indexing?
     expi["y_det"] = sol
-    expi["y"] = sol + np.random.normal(0, 0.02, sol.shape)
+    expi["y"] = sol + np.random.normal(0, 0.03, sol.shape)
     expi["u"] = np.cos(ui*t)[..., None]  # trick to keep it col-vector
     expi["t"] = t
 
@@ -46,7 +45,7 @@ pqe = pqEDMDp(
     p=[2, 3, 4],          # Sweep over there 3 values of max order p
     q=[0.5, 1, 1.5, 2],   # Sweep over these q-quasi-norms
     obs=pqo.legendreObs,  # Use legendre observables orthogonal [-inf, inf]
-    dyn_dcp=svd.svdDecomposition)
+    dyn_dcp=lambda obs, sys: sid.sidDecomposition(5, 1, obs, sys))
 
 # Define the indexes for the training and testing sets
 tr = [1, 2]
@@ -68,7 +67,7 @@ appx = dcp.predict_from_test([exp[i] for i in ts])
 
 plt.ioff()
 fig, axs = plt.subplots(num_ics, sharex=True)
-det = [axs[i].plot(expi['t'], expi['y'], 'g', lw=2)
+det = [axs[i].plot(expi['t'], expi['y_det'], 'g', lw=2)
        for i, expi in enumerate(exp)]
 # Plot training set
 trp = [axs[tri].plot(expi['t'], expi['y'], 'b')
@@ -81,8 +80,9 @@ app = [axs[tsi].plot(expi['t'], appxi['y'], '.-k')
        for appxi, expi, tsi in zip(appx, [exp[i] for i in ts], ts)]
 axs[-1].set_xlabel('$t$')
 [axs[i].set_ylabel('$x$') for i in range(num_ics)]
-axs[0].set_title(f"svdDecomposition \n p={dcp.observable.obs_p}, q={
+axs[0].set_title(f"sidDecomposition \n p={dcp.observable.obs_p}, q={
     dcp.observable.obs_q}, n={dcp.sys_n}, $\\epsilon$={np.nanmin(arr):.3f}")
 plt.legend((det[0][0], trp[0][0], tsp[0][0], app[0][0]),
            ['Deterministic', 'Training', 'Testing', 'Approx'])
 plt.show()
+

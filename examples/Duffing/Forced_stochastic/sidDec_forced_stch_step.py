@@ -85,4 +85,3 @@ plt.legend((det[0][0], trp[0][0], tsp[0][0], app[0][0]),
 plt.title(f"svdDecomposition \n p={dcp.observable.obs_p}, q={
           dcp.observable.obs_q}, n={dcp.sys_n}, $\\epsilon$={np.nanmin(arr):.3f}")
 plt.show()
-
