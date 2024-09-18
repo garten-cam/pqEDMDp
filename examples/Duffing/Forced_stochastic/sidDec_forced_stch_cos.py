@@ -70,13 +70,13 @@ fig, axs = plt.subplots(num_ics, sharex=True)
 det = [axs[i].plot(expi['t'], expi['y_det'], 'g', lw=2)
        for i, expi in enumerate(exp)]
 # Plot training set
-trp = [axs[tri].plot(expi['t'], expi['y'], 'b')
+trp = [axs[tri].plot(expi['t'], expi['y'], 'b', lw=1)
        for expi, tri in zip([exp[i] for i in tr], tr)]
 # Plot the testing set
-tsp = [axs[tsi].plot(expi['t'], expi['y'], 'r')
+tsp = [axs[tsi].plot(expi['t'], expi['y'], 'r', lw=1)
        for expi, tsi in zip([exp[i] for i in ts], ts)]
 # Plot the approximation
-app = [axs[tsi].plot(expi['t'], appxi['y'], '.-k')
+app = [axs[tsi].plot(expi['t'], appxi['y'], '.-k', lw=0.5)
        for appxi, expi, tsi in zip(appx, [exp[i] for i in ts], ts)]
 axs[-1].set_xlabel('$t$')
 [axs[i].set_ylabel('$x$') for i in range(num_ics)]
@@ -85,4 +85,3 @@ axs[0].set_title(f"sidDecomposition \n p={dcp.observable.obs_p}, q={
 plt.legend((det[0][0], trp[0][0], tsp[0][0], app[0][0]),
            ['Deterministic', 'Training', 'Testing', 'Approx'])
 plt.show()
-

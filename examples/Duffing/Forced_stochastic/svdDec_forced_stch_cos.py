@@ -66,7 +66,7 @@ dcp = dcps[np.nanargmin(arr)]
 # Predict from the best decomposition
 appx = dcp.predict_from_test([exp[i] for i in ts])
 
-plt.ioff()
+plt.ion()
 fig, axs = plt.subplots(num_ics, sharex=True)
 det = [axs[i].plot(expi['t'], expi['y'], 'g', lw=2)
        for i, expi in enumerate(exp)]
