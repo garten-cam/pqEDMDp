@@ -46,10 +46,12 @@ class pqDecomposition:
         else:
             n_in = 0
 
-        self.num_obs: int = np.shape(self.observable.pq_mat())[1]
+        # The bias should count as an observable.
+        self.num_obs: int = np.shape(self.observable.pq_mat())[1] + 1
         self.sys_m: int = n_in
         self.sys_l: int = self.observable.obs_l
-        self.sys_n: int = self.num_obs + 1
+        # In the base formulation, num_obs and sys_n are the same
+        self.sys_n: int = self.num_obs
         # Calculate
         U = self.regression(o_fut, o_pst)
         # Get the system matrices
@@ -129,14 +131,12 @@ class pqDecomposition:
                 )) for sp in system
             ]
         ))
+        breakpoint()
         y_ob_fut = np.vstack((
             [
-                np.hstack((
-                    np.ones((
-                        np.shape(sp["y"])[0] - 2, 1
-                    )),
-                    np.squeeze(obsrv(*sp["y"][1:-1, :].T).T)
-                )) for sp in system
+                np.hstack((np.ones((np.shape(sp["y"])[0] - 2, 1)),
+                           np.squeeze(obsrv(*sp["y"][1:-1, :].T).T)
+                           )) for sp in system
             ]
         ))
         return y_ob_pst, y_ob_fut

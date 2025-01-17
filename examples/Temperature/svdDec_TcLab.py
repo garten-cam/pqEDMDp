@@ -33,8 +33,8 @@ ts = [2, 4]
 tr = [0, 1, 3, 5]
 # Define the pq
 pqe = pqEDMDp(
-    p=[2, 3, 4],
-    q=[0.6, 1.2, 1.5],
+    p=[2, 3, 4],  # x x**2 x**3  macximum order of the polynomial
+    q=[0.6, 1.2, 1.5],  # x1 x2 x1x2 x1**2x2  x1:=[1 0 2]  x2:=[]
     obs=pqo.legendreObs,
     dyn_dcp=svd.svdDecomposition)
 

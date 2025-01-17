@@ -10,9 +10,9 @@ rng = np.random.default_rng(73)
 num_ics = 6
 ics_width = 4
 ics = ics_width * rng.random((num_ics, 2)) - ics_width / 2
-
-tfin = 30
-n_points = 7*tfin + 1
+# Use different lengths for the simulation
+tfin = np.ceil((50-40) * rng.random((num_ics, 1)) + 40).astype(np.int32)
+n_points = (10*tfin + 1)
 
 
 def duffodeu(x, t, u):
@@ -26,15 +26,15 @@ u = 4*rng.random((num_ics, 1))-2
 # exp as in experiments. An array of dictionaries. In this case, the number of
 # points per experiment is the same, but that is not always the case.
 exp = [{
-    "y": np.empty((n_points, 2)),
-    "y_det": np.empty((n_points, 2)),
-    "u": u[i][0]*np.ones((n_points, 1)),
-    "t": np.empty((n_points, 1))
-} for i in range(num_ics)]
+    "y": np.empty((n_pi[0], 2)),
+    "y_det": np.empty((n_pi[0], 2)),
+    "u": ui*np.ones((n_pi[0], 1)),
+    "t": np.empty((n_pi[0], 1))
+} for ui, n_pi in zip(u, n_points)]
 
 
-for ic, expi, ui in zip(ics, exp, u):
-    t = np.linspace(0, tfin, n_points)
+for ic, expi, ui, t_fi, n_pi in zip(ics, exp, u, tfin, n_points):
+    t = np.linspace(0, t_fi[0], n_pi[0])
     sol = odeint(duffodeu, ic, t, args=(ui[0],))  # How to avoid this indexing?
     expi["y_det"] = sol
     expi["y"] = sol + np.random.normal(0, 0.01, sol.shape)
@@ -43,7 +43,7 @@ for ic, expi, ui in zip(ics, exp, u):
 # Create the pqEDMD object
 pqe = pqEDMDp(
     p=[2, 3, 4],          # Sweep over there 3 values of max order p
-    q=[0.5, 1, 1.5, 2],   # Sweep over these q-quasi-norms
+    q=[1, 1.5, 2],   # Sweep over these q-quasi-norms
     obs=pqo.legendreObs,  # Use legendre observables orthogonal [-inf, inf]
     dyn_dcp=svd.svdDecomposition)
 
