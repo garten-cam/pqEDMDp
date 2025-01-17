@@ -35,8 +35,8 @@ tr = [0, 1, 3, 5]
 pqe = pqEDMDp(
     p=[2, 3, 4],
     q=[0.6, 1.2, 1.5],
-    obs=pqo.legendreObs,
-    dyn_dcp=lambda obs, sys: sid.sidDecomposition(1, 1, obs, sys))
+    obs=pqo.laguerreObs,
+    dyn_dcp=lambda obs, sys: sid.sidDecomposition(20, 10, obs, sys))
 
 # Fit the decompositions
 dcps = pqe.fit([exp[i] for i in tr])

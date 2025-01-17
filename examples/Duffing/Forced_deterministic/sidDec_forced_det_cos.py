@@ -41,8 +41,8 @@ for ic, expi, ui in zip(ics, exp, u):
 
 # Create the pqEDMD object
 pqe = pqEDMDp(
-    p=[2, 3, 4],          # Sweep over there 3 values of max order p
-    q=[0.5, 1, 1.5, 2],   # Sweep over these q-quasi-norms
+    p=[3, 4],          # Sweep over there 3 values of max order p
+    q=[1, 1.5, 2],   # Sweep over these q-quasi-norms
     obs=pqo.legendreObs,  # Use legendre observables orthogonal [-inf, inf]
     dyn_dcp=lambda obs, sys: sid.sidDecomposition(3, 1, obs, sys))
 
@@ -82,4 +82,3 @@ axs[0].set_title(f"svdDecomposition \n p={dcp.observable.obs_p}, q={
 plt.legend((trp[0][0], tsp[0][0], app[0][0]),
            ['Training', 'Testing', 'Approx'])
 plt.show()
-

@@ -36,7 +36,7 @@ for ic, expi, ui in zip(ics, exp, u):
     t = np.linspace(0, tfin, n_points)
     sol = odeint(duffodeu, ic, t, args=(ui[0],))  # How to avoid this indexing?
     expi["y_det"] = sol
-    expi["y"] = sol + np.random.normal(0, 0.03, sol.shape)
+    expi["y"] = sol + np.random.normal(0, 0.02, sol.shape)
     expi["u"] = np.cos(ui*t)[..., None]  # trick to keep it col-vector
     expi["t"] = t
 
@@ -45,11 +45,11 @@ pqe = pqEDMDp(
     p=[2, 3, 4],          # Sweep over there 3 values of max order p
     q=[0.5, 1, 1.5, 2],   # Sweep over these q-quasi-norms
     obs=pqo.legendreObs,  # Use legendre observables orthogonal [-inf, inf]
-    dyn_dcp=lambda obs, sys: sid.sidDecomposition(5, 1, obs, sys))
+    dyn_dcp=lambda obs, sys: sid.sidDecomposition(10, 1, obs, sys))
 
 # Define the indexes for the training and testing sets
-tr = [1, 2]
-ts = [0, 3, 4, 5]
+tr = [0, 1]
+ts = [2, 3, 4, 5]
 
 # Fit the model with the training set
 dcps = pqe.fit([exp[i] for i in tr])

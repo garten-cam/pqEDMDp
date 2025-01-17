@@ -17,7 +17,7 @@ class svdDecomposition(pqDecomposition):
 
     Attributes
     A : Evolution matrix ψ(x)_+ = A ψ(x) + B u
-    B : Input matrix       this one  ^
+    B : Input matrix             this one  ^
     C : Output matrix y = C ψ + D u
     D : Input to output matrix  ^ this one
     sys_l : number of outputs
@@ -45,7 +45,6 @@ class svdDecomposition(pqDecomposition):
         s is the list of singular values
         vareval is the matrix to evaluate.
         '''
-        r = np.sum(
+        return np.sum(
             s > np.max((vareval.shape)) * sys.float_info.epsilon * s[0]
         )
-        return r

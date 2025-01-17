@@ -1,4 +1,4 @@
-"""jkjkjkjkjkj
+"""
 Author: Camilo Garcia Tenorio
 returns a pq decomposition object
 based on subspace identification
@@ -54,7 +54,7 @@ class sidDecomposition(svdDecomposition):
             else:
                 self.det = True
 
-        self.num_obs: int = np.shape(self.observable.pq_mat())[1]
+        self.num_obs: int = np.shape(self.observable.pq_mat())[1] + 1
         self.fb = fb
         self.sys_l: int = self.observable.obs_l  # Copy of the obs attr
 
@@ -71,7 +71,7 @@ class sidDecomposition(svdDecomposition):
             Ysid, Usid)
         # From the new A and C, recompute Gamma
         # Calculate the C that brings back the espanded state to the output
-        self.Cedmd: np.ndarray = self.matrix_C()[:, 1:]
+        self.Cedmd: np.ndarray = self.matrix_C()
 
     def ABCDKn(self, Ysid, Usid) -> None:
         U, S = self.compute_svd(Ysid, Usid)
@@ -183,9 +183,16 @@ class sidDecomposition(svdDecomposition):
         return yfPOuf @ wpPOuf @ Z
 
     def xu_eval(self, system):
-        # for sid, just evaluate the outputs
+        # for sid, just evaluate the outputs, and the bias
         obsf = self.observable.obs_fun()
-        ytr = [np.squeeze(obsf(*sp["y"].T).T) for sp in system]
+        ytr = [
+            np.hstack((
+                np.ones((np.shape(sp["y"])[0], 1)),
+                np.squeeze(obsf(*sp["y"].T).T)
+            ))
+            for sp in system
+        ]
+
         if "u" in system[0].keys():
             utr = [sp["u"] for sp in system]
         else:
@@ -210,10 +217,11 @@ class sidDecomposition(svdDecomposition):
         for orb, y0_s in enumerate(y0):  # for all initial conditions
             pred[orb]["y"][0, :] = y0_s
             pred[orb]['sv'][0, :] = (
-                Cinv@(obsf(*pred[orb]["y"][0, :]))).T
+                Cinv@np.vstack((1, (obsf(*pred[orb]["y"][0, :]))))).T
             for step in range(1, n_points[orb]):
                 # Lift the previous output
-                lft = obsf(*pred[orb]['y'][step-1, :])
+                lft = np.vstack(
+                    (1, obsf(*pred[orb]['y'][step-1, :]))).astype(np.float128)
                 # Lifted to space state
                 x_prev = Cinv@lft
                 # Evolve
