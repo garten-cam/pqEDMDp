@@ -221,7 +221,7 @@ class sidDecomposition(svdDecomposition):
             for step in range(1, n_points[orb]):
                 # Lift the previous output
                 lft = np.vstack(
-                    (1, obsf(*pred[orb]['y'][step-1, :]))).astype(np.float128)
+                    (1, obsf(*pred[orb]['y'][step-1, :])))
                 # Lifted to space state
                 x_prev = Cinv@lft
                 # Evolve
