@@ -22,9 +22,8 @@ class pqObservable:
         return lambdify(x, Matrix(p_b), modules="numpy")
 
     def poly_base(self) -> np.ndarray:
-        x = symbols(f"x:{self.obs_l}")
-        orders = self.pq_mat()
-        o_sym = self.assign_poly(orders, x)
+        # x = symbols(f"x:{self.obs_l}")
+        o_sym = self.assign_poly()
         poly_b = np.prod(o_sym, axis=0)
         return poly_b
 
@@ -55,9 +54,11 @@ class pqObservable:
                 pm[:, col - 1] = np.flip([int(x) for x in base_string])
         return pm
 
-    def assign_poly(self, orders, xsym) -> list:
+    def assign_poly(self) -> list:
         # Monomials, never use these, they are not orthogonal.
-        return [[x**ord for ord in orders[c]] for c, x in enumerate(xsym)]
+        return [[
+            x**ord for ord in self.pq_mat()[c]]
+            for c, x in enumerate(symbols(f"x:{self.obs_l}"))]
 
     def __eq__(self, other) -> bool:
         equal = False
@@ -72,39 +73,47 @@ class pqObservable:
 
 
 class hermiteObs(pqObservable):
-    def assign_poly(self, orders, xsym):
+    def assign_poly(self):
         return [
-            [op.hermite_poly(ord, x) for ord in orders[c]] for c, x in enumerate(xsym)
+            [op.hermite_poly(ord, x)
+                for ord in self.pq_mat()[c]]
+            for c, x in enumerate(symbols(f"x:{self.obs_l}"))
         ]
 
 
 class laguerreObs(pqObservable):
-    def assign_poly(self, orders, xsym):
+    def assign_poly(self):
         return [
-            [op.laguerre_poly(ord, x) for ord in orders[c]] for c, x in enumerate(xsym)
+            [op.laguerre_poly(ord, x)
+                for ord in self.pq_mat()[c]]
+            for c, x in enumerate(symbols(f"x:{self.obs_l}"))
         ]
 
 
 class chebyshevtObs(pqObservable):
-    def assign_poly(self, orders, xsym):
+    def assign_poly(self):
         return [
-            [op.chebyshevt_poly(ord, x) for ord in orders[c]]
-            for c, x in enumerate(xsym)
+            [op.chebyshevt_poly(ord, x)
+                for ord in self.pq_mat()[c]]
+            for c, x in enumerate(symbols(f"x:{self.obs_l}"))
         ]
 
 
 class chebyshevuObs(pqObservable):
-    def assign_poly(self, orders, xsym):
+    def assign_poly(self):
         return [
-            [op.chebyshevu_poly(ord, x) for ord in orders[c]]
-            for c, x in enumerate(xsym)
+            [op.chebyshevu_poly(ord, x)
+                for ord in self.pq_mat()[c]]
+            for c, x in enumerate(symbols(f"x:{self.obs_l}"))
         ]
 
 
 class legendreObs(pqObservable):
-    def assign_poly(self, orders, xsym):
+    def assign_poly(self):
         return [
-            [op.legendre_poly(ord, x) for ord in orders[c]] for c, x in enumerate(xsym)
+            [op.legendre_poly(ord, x)
+                for ord in self.pq_mat()[c]]
+            for c, x in enumerate(symbols(f"x:{self.obs_l}"))
         ]
 
 
